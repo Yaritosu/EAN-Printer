@@ -43,7 +43,7 @@ export const TemplateManager = ({
         onClick={onReset}
         type="button"
       >
-        Auf Standard zuruecksetzen
+        Auf Standard zur\u00FCcksetzen
       </button>
     </div>
 
@@ -56,7 +56,7 @@ export const TemplateManager = ({
           onChange={(event) => onTemplateSelect(event.target.value)}
           value={selectedTemplateId}
         >
-          <option value="">Bitte waehlen</option>
+          <option value="">Bitte w\u00E4hlen</option>
           {templates.map((template) => (
             <option key={template.id} value={template.id}>
               {template.name}
@@ -108,7 +108,7 @@ export const TemplateManager = ({
         onClick={onDelete}
         type="button"
       >
-        Loeschen
+        L\u00F6schen
       </button>
     </div>
 

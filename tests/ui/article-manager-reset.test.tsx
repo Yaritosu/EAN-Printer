@@ -13,8 +13,8 @@ describe("LabelEditor article maintenance flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Artikel" }));
 
     const nameInput = screen.getByLabelText("Artikelname");
-    const skuInput = screen.getByLabelText("SKU optional");
-    const eanInput = screen.getByLabelText("EAN optional");
+    const skuInput = screen.getByLabelText("SKU (optional)");
+    const eanInput = screen.getByLabelText("EAN (optional)");
 
     fireEvent.change(nameInput, { target: { value: "Testjacke" } });
     fireEvent.change(skuInput, { target: { value: "ELV-JACK-7" } });
@@ -23,12 +23,12 @@ describe("LabelEditor article maintenance flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Artikel speichern" }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Formular ist bereit fuer den naechsten Artikel/i)).toBeInTheDocument();
+      expect(screen.getByText(/Formular ist bereit für den nächsten Artikel/i)).toBeInTheDocument();
     });
 
     expect(screen.getByLabelText("Artikelname")).toHaveValue("");
-    expect(screen.getByLabelText("SKU optional")).toHaveValue("");
-    expect(screen.getByLabelText("EAN optional")).toHaveValue("");
+    expect(screen.getByLabelText("SKU (optional)")).toHaveValue("");
+    expect(screen.getByLabelText("EAN (optional)")).toHaveValue("");
 
     fireEvent.click(screen.getByRole("button", { name: "Etikett erstellen" }));
 

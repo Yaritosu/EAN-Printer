@@ -39,6 +39,6 @@ describe("LabelLayout", () => {
         showSku: true,
         showHumanReadableEan: true
       })
-    ).toThrow("Layout must leave a positive printable area.");
+    ).toThrow("Das Layout muss eine positive druckbare Fläche übrig lassen.");
   });
 });

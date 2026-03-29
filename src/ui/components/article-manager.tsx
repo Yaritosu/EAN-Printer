@@ -127,7 +127,7 @@ export const ArticleManager = ({
             <p className="text-xs text-slate-500">
               {articleSearchHasQuery
                 ? "Treffer erscheinen direkt unter dem Suchfeld und laden den Artikel in die Bearbeitung."
-                : `${articles.length} lokale Artikel verfuegbar. Suche nach Name, SKU oder EAN.`}
+                : `${articles.length} lokale Artikel verf\u00FCgbar. Suche nach Name, SKU oder EAN.`}
             </p>
           </div>
 
@@ -136,7 +136,7 @@ export const ArticleManager = ({
             <p className="mt-2 text-slate-500">
               {isEditing
                 ? "Du bearbeitest gerade einen vorhandenen lokalen Artikel. Speichern aktualisiert denselben Datensatz."
-                : "Leeres Formular fuer einen neuen Artikel. Nach dem Speichern springt das Formular wieder in einen frischen Erfassungszustand."}
+                : "Leeres Formular f\u00FCr einen neuen Artikel. Nach dem Speichern springt das Formular wieder in einen frischen Erfassungszustand."}
             </p>
           </div>
         </div>
@@ -147,11 +147,11 @@ export const ArticleManager = ({
             <input className={inputClassName} onChange={(event) => onDraftChange("name", event.target.value)} value={articleDraft.name} />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-slate-700">SKU optional</span>
+            <span className="text-sm font-medium text-slate-700">SKU (optional)</span>
             <input className={inputClassName} onChange={(event) => onDraftChange("sku", event.target.value)} value={articleDraft.sku} />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-slate-700">EAN optional</span>
+            <span className="text-sm font-medium text-slate-700">EAN (optional)</span>
             <input className={inputClassName} onChange={(event) => onDraftChange("ean", event.target.value)} value={articleDraft.ean} />
           </label>
         </div>
@@ -164,7 +164,7 @@ export const ArticleManager = ({
             Neu beginnen
           </button>
           <button className="rounded-full bg-rose-700 px-4 py-2 text-sm font-semibold text-white disabled:bg-slate-300" disabled={!selectedArticleId} onClick={onDeleteArticle} type="button">
-            Artikel loeschen
+            Artikel l\u00F6schen
           </button>
         </div>
 
@@ -173,11 +173,11 @@ export const ArticleManager = ({
 
       <div className="rounded-[24px] border border-indigo-200 bg-indigo-50/70 p-4">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-indigo-700">Import CSV / Excel</p>
-        <p className="mt-1 text-sm text-slate-600">Unterstuetzt CSV und XLSX. Erwartete Spalten: `name`, `sku`, `ean` oder entsprechende Varianten.</p>
+        <p className="mt-1 text-sm text-slate-600">Unterst\u00FCtzt CSV und XLSX. Erwartete Spalten: `name`, `sku`, `ean` oder entsprechende Varianten.</p>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <label className="cursor-pointer rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700">
-            Datei auswaehlen
+            Datei ausw\u00E4hlen
             <input
               accept=".csv,.xlsx,.xls"
               className="hidden"
@@ -192,7 +192,7 @@ export const ArticleManager = ({
             />
           </label>
           <button className="rounded-full bg-indigo-700 px-4 py-2 text-sm font-semibold text-white disabled:bg-slate-300" disabled={!importPreview} onClick={onImportConfirm} type="button">
-            Import bestaetigen
+            Import best\u00E4tigen
           </button>
         </div>
 
@@ -201,7 +201,7 @@ export const ArticleManager = ({
             <p className="font-semibold text-slate-900">Importvorschau: {importPreview.sourceName}</p>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div>
-                <p className="font-medium text-slate-900">Gueltige Zeilen: {importPreview.validCount}</p>
+                <p className="font-medium text-slate-900">G\u00FCltige Zeilen: {importPreview.validCount}</p>
                 {importPreview.previewRows.length > 0 ? (
                   <ul className="mt-2 space-y-2 text-sm text-slate-600">
                     {importPreview.previewRows.slice(0, 5).map((row) => (
@@ -213,7 +213,7 @@ export const ArticleManager = ({
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-2 text-slate-500">Keine gueltigen Zeilen erkannt.</p>
+                  <p className="mt-2 text-slate-500">Keine g\u00FCltigen Zeilen erkannt.</p>
                 )}
               </div>
               <div>

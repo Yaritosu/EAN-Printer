@@ -3,15 +3,15 @@ export class Ean13 {
 
   static create(value: string): Ean13 {
     if (!/^\d+$/.test(value)) {
-      throw new Error("EAN must contain digits only.");
+      throw new Error("EAN darf nur Ziffern enthalten.");
     }
 
     if (value.length !== 13) {
-      throw new Error("EAN must be exactly 13 digits.");
+      throw new Error("EAN muss genau 13 Ziffern enthalten.");
     }
 
     if (!Ean13.hasValidCheckDigit(value)) {
-      throw new Error("EAN check digit is invalid.");
+      throw new Error("Die Prüfziffer der EAN ist ungültig.");
     }
 
     return new Ean13(value);

@@ -28,7 +28,7 @@ export class Article {
   static create(props: ArticleProps): Article {
     const name = props.name.trim();
     if (!name) {
-      throw new Error("Article name is required.");
+      throw new Error("Artikelname ist erforderlich.");
     }
 
     const sku = props.sku?.trim() || undefined;
@@ -41,3 +41,4 @@ export class Article {
     return new Article(props.articleId, name, sku, ean, props.status, props.createdAt, props.updatedAt);
   }
 }
+

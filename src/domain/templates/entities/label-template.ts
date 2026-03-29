@@ -23,9 +23,10 @@ export class LabelTemplate {
     const trimmedName = props.name.trim();
 
     if (!trimmedName) {
-      throw new Error("Template name is required.");
+      throw new Error("Ein Template-Name ist erforderlich.");
     }
 
     return new LabelTemplate(props.id, trimmedName, props.layout, props.createdAt, props.updatedAt);
   }
 }
+

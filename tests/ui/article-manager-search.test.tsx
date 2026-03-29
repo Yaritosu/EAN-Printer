@@ -17,7 +17,7 @@ const seedArticles = () => {
       },
       {
         articleId: "a2",
-        name: "Winter Fusssack",
+        name: "Winter Fußsack",
         sku: "ELV-WFS-1",
         ean: "4006381333931",
         status: "active",
@@ -48,8 +48,8 @@ describe("LabelEditor article search flow", () => {
     await waitFor(() => {
       expect(screen.getByText("Artikel bearbeiten")).toBeInTheDocument();
       expect(screen.getByLabelText("Artikelname")).toHaveValue("Elvent Testjacke");
-      expect(screen.getByLabelText("SKU optional")).toHaveValue("ELV-JACK-7");
-      expect(screen.getByLabelText("EAN optional")).toHaveValue("4260706043787");
+      expect(screen.getByLabelText("SKU (optional)")).toHaveValue("ELV-JACK-7");
+      expect(screen.getByLabelText("EAN (optional)")).toHaveValue("4260706043787");
     });
   });
 });

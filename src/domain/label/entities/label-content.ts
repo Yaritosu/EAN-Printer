@@ -19,7 +19,7 @@ export class LabelContent {
     const articleName = props.articleName.trim();
 
     if (!articleName) {
-      throw new Error("Article name is required.");
+      throw new Error("Artikelname ist erforderlich.");
     }
 
     const ean = Ean13.create(props.ean);
@@ -27,3 +27,4 @@ export class LabelContent {
     return new LabelContent(articleName, props.sku?.trim() || undefined, ean, BarcodeValue.fromEan(ean.value));
   }
 }
+

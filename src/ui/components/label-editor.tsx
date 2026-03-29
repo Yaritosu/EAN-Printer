@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -32,7 +32,7 @@ const labelSchema = z.object({
   ean: z.string().regex(/^\d{13}$/, "EAN muss genau 13 Ziffern enthalten."),
   layout: z.object({
     widthMm: z.number().positive("Breite muss positiv sein."),
-    heightMm: z.number().positive("Hoehe muss positiv sein."),
+    heightMm: z.number().positive("Höhe muss positiv sein."),
     marginTopMm: z.number().min(0),
     marginRightMm: z.number().min(0),
     marginBottomMm: z.number().min(0),
@@ -103,6 +103,7 @@ export const LabelEditor = () => {
   const [isArticleSearchOpen, setIsArticleSearchOpen] = useState(false);
   const [articleDraft, setArticleDraft] = useState({ name: "", sku: "", ean: "" });
   const [importBuffer, setImportBuffer] = useState<ImportBuffer | null>(null);
+  const articleSearchInputRef = useRef<HTMLInputElement | null>(null);
 
   const templateRepository = useMemo(
     () => (typeof window === "undefined" ? null : new LocalStorageTemplateRepository(window.localStorage)),
@@ -123,12 +124,16 @@ export const LabelEditor = () => {
     resolver: zodResolver(labelSchema),
     mode: "onChange",
     defaultValues: {
-      articleName: "Premium Baumwoll-Shirt",
-      sku: "SKU-1234",
-      ean: "4006381333931",
+      articleName: "",
+      sku: "",
+      ean: "",
       layout: defaultLayout
     }
   });
+
+  const focusArticleSearch = () => {
+    window.setTimeout(() => articleSearchInputRef.current?.focus(), 0);
+  };
 
   const refreshTemplates = async () => {
     if (!templateRepository) return;
@@ -144,6 +149,12 @@ export const LabelEditor = () => {
     void refreshTemplates();
     void refreshArticles();
   }, [templateRepository, articleRepository]);
+
+  useEffect(() => {
+    if (activeTab === "create") {
+      focusArticleSearch();
+    }
+  }, [activeTab]);
 
   const layoutOptions = useMemo<LayoutOption[]>(() => {
     return [
@@ -203,6 +214,7 @@ export const LabelEditor = () => {
     const selectedOption = layoutOptions.find((option) => option.id === layoutId);
     if (!selectedOption) return;
     applyLayout(selectedOption.layout);
+    focusArticleSearch();
   };
 
   const handleArticleSelectionForLabel = (article: Article) => {
@@ -212,6 +224,7 @@ export const LabelEditor = () => {
     setValue("articleName", article.name, { shouldValidate: true, shouldDirty: true });
     setValue("sku", article.sku ?? "", { shouldValidate: true, shouldDirty: true });
     setValue("ean", article.ean ?? "", { shouldValidate: true, shouldDirty: true });
+    focusArticleSearch();
   };
 
   const handleArticleResultMouseDown = (event: React.MouseEvent<HTMLButtonElement>, article: Article) => {
@@ -222,7 +235,15 @@ export const LabelEditor = () => {
   const handleSelectedArticleClear = () => {
     setSelectedArticleId("");
     setArticleSearch("");
+    setValue("articleName", "", { shouldValidate: true, shouldDirty: true });
+    setValue("sku", "", { shouldValidate: true, shouldDirty: true });
+    setValue("ean", "", { shouldValidate: true, shouldDirty: true });
     setIsArticleSearchOpen(false);
+    focusArticleSearch();
+  };
+
+  const handleCreateFieldBlur = () => {
+    focusArticleSearch();
   };
 
   const handlePdf = async () => {
@@ -235,12 +256,14 @@ export const LabelEditor = () => {
     if (!response.ok) {
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       setPdfMessage(payload?.error ?? "PDF konnte nicht erzeugt werden.");
+      focusArticleSearch();
       return;
     }
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank", "noopener,noreferrer");
-    setPdfMessage("PDF wurde in einem neuen Fenster geoeffnet. Auf Windows jetzt ueber den Druckdialog drucken.");
+    setPdfMessage("PDF wurde in einem neuen Fenster geöffnet.");
+    focusArticleSearch();
   };
 
   const handleTemplateSave = async () => {
@@ -251,7 +274,7 @@ export const LabelEditor = () => {
       setSelectedTemplateId(created.id);
       setActiveLayoutId(created.id);
       setTemplateName(created.name);
-      setTemplateMessage(`Template \"${created.name}\" wurde gespeichert und ist jetzt aktiv.`);
+      setTemplateMessage(`Template „${created.name}“ wurde gespeichert und ist jetzt aktiv.`);
     } catch (error) {
       setTemplateMessage(error instanceof Error ? error.message : "Template konnte nicht gespeichert werden.");
     }
@@ -268,7 +291,7 @@ export const LabelEditor = () => {
       await refreshTemplates();
       setTemplateName(updated.name);
       setActiveLayoutId(updated.id);
-      setTemplateMessage(`Template \"${updated.name}\" wurde aktualisiert.`);
+      setTemplateMessage(`Template „${updated.name}“ wurde aktualisiert.`);
     } catch (error) {
       setTemplateMessage(error instanceof Error ? error.message : "Template konnte nicht aktualisiert werden.");
     }
@@ -277,13 +300,13 @@ export const LabelEditor = () => {
   const handleTemplateLoad = () => {
     const selectedTemplate = templates.find((template) => template.id === selectedTemplateId);
     if (!selectedTemplate) {
-      setTemplateMessage("Bitte zuerst ein Template auswaehlen.");
+      setTemplateMessage("Bitte zuerst ein Template auswählen.");
       return;
     }
     applyLayout(selectedTemplate.layout);
     setActiveLayoutId(selectedTemplate.id);
     setTemplateName(selectedTemplate.name);
-    setTemplateMessage(`Template \"${selectedTemplate.name}\" wurde in den Layout-Konfigurator geladen und ist aktiv.`);
+    setTemplateMessage(`Template „${selectedTemplate.name}“ wurde in den Layout-Konfigurator geladen und ist aktiv.`);
   };
 
   const handleTemplateDelete = async () => {
@@ -298,7 +321,7 @@ export const LabelEditor = () => {
       setActiveLayoutId(layoutPresets[0].id);
       applyLayout(layoutPresets[0].layout);
     }
-    setTemplateMessage(`Template \"${selectedTemplate.name}\" wurde geloescht.`);
+    setTemplateMessage(`Template „${selectedTemplate.name}“ wurde gelöscht.`);
   };
 
   const handleTemplateReset = () => {
@@ -347,7 +370,7 @@ export const LabelEditor = () => {
       await refreshArticles();
       setEditingArticleId("");
       setArticleDraft({ name: "", sku: "", ean: "" });
-      setArticleMessage(`Artikel \"${saved.name}\" wurde gespeichert. Formular ist bereit fuer den naechsten Artikel.`);
+      setArticleMessage(`Artikel „${saved.name}“ wurde gespeichert. Das Formular ist bereit für den nächsten Artikel.`);
     } catch (error) {
       setArticleMessage(error instanceof Error ? error.message : "Artikel konnte nicht gespeichert werden.");
     }
@@ -364,7 +387,7 @@ export const LabelEditor = () => {
     }
     setEditingArticleId("");
     setArticleDraft({ name: "", sku: "", ean: "" });
-    setArticleMessage(selectedArticleForEdit ? `Artikel \"${selectedArticleForEdit.name}\" wurde geloescht.` : "Artikel wurde geloescht.");
+    setArticleMessage(selectedArticleForEdit ? `Artikel „${selectedArticleForEdit.name}“ wurde gelöscht.` : "Artikel wurde gelöscht.");
   };
 
   const handleArticleReset = () => {
@@ -426,9 +449,6 @@ export const LabelEditor = () => {
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-700">Label Composer</p>
           <h1 className="mt-2 font-serif text-3xl text-slate-900">EAN-Label MVP</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Lokale Artikeldatenbasis, Layout-Templates und Labeldruck in einer kleinen, sauberen internen Anwendung.
-          </p>
         </div>
 
         <div className="flex flex-wrap gap-3 rounded-full bg-slate-100 p-1">
@@ -440,9 +460,10 @@ export const LabelEditor = () => {
         {activeTab === "create" ? (
           <>
             <ValidationSummary issues={allIssues} />
+
             <div className="grid gap-4 rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 md:grid-cols-[1fr_1fr]">
               <Field label="Layout / Etikettenformat">
-                <select className={inputClassName} onChange={(event) => handleLayoutSelection(event.target.value)} value={activeLayoutId}>
+                <SelectControl onChange={(event) => handleLayoutSelection(event.target.value)} value={activeLayoutId}>
                   <optgroup label="Standardlayouts">
                     {layoutOptions.filter((option) => option.source === "preset").map((option) => (
                       <option key={option.id} value={option.id}>{option.name}</option>
@@ -453,12 +474,14 @@ export const LabelEditor = () => {
                       <option key={option.id} value={option.id}>{option.name}</option>
                     ))}
                   </optgroup>
-                </select>
+                </SelectControl>
               </Field>
+
               <div className="space-y-2">
                 <div className="relative">
-                  <Field label="Artikel aus lokaler Datenbasis suchen">
+                  <Field label="Artikel suchen">
                     <input
+                      ref={articleSearchInputRef}
                       aria-controls="article-search-results"
                       aria-expanded={showArticleSearchResults}
                       aria-haspopup="listbox"
@@ -505,10 +528,11 @@ export const LabelEditor = () => {
                     </div>
                   ) : null}
                 </div>
+
                 <p className="text-xs text-slate-500">
                   {articleSearchHasQuery
-                    ? "Treffer erscheinen direkt unter dem Suchfeld und werden per Klick uebernommen."
-                    : `${articles.length} lokale Artikel verfuegbar. Suche nach Name, SKU oder EAN.`}
+                    ? "Treffer erscheinen direkt unter dem Suchfeld und werden per Klick übernommen."
+                    : `${articles.length} lokale Artikel verfügbar. Suche nach Name, SKU oder EAN.`}
                 </p>
               </div>
             </div>
@@ -517,7 +541,7 @@ export const LabelEditor = () => {
               <div className="rounded-[24px] border border-teal-200 bg-teal-50/70 px-4 py-3 text-sm text-slate-700">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-slate-900">Ausgewaehlter Artikel</p>
+                    <p className="font-semibold text-slate-900">Ausgewählter Artikel</p>
                     <p className="mt-1">{selectedArticle.name}</p>
                     <p className="mt-1 text-slate-500">
                       {selectedArticle.sku ? `SKU ${selectedArticle.sku}` : "ohne SKU"}
@@ -529,38 +553,23 @@ export const LabelEditor = () => {
                     onClick={handleSelectedArticleClear}
                     type="button"
                   >
-                    Auswahl loesen
+                    Auswahl lösen
                   </button>
                 </div>
               </div>
             ) : null}
 
-            <div className="rounded-[24px] border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-700">
-              <p className="font-semibold text-slate-900">Aktives Layout</p>
-              <p className="mt-1">{activeLayoutLabel}</p>
-              <p className="mt-2 text-slate-500">Layoutwechsel wirkt sofort auf Vorschau und PDF. Die Artikelsuche arbeitet als direktes Suchfeld mit eingeblendeten Treffern.</p>
-            </div>
-
             <div className="grid gap-6 md:grid-cols-3">
               <Field label="EAN">
-                <input {...register("ean")} className={inputClassName} />
-              </Field>
-              <Field label="SKU optional">
-                <input {...register("sku")} className={inputClassName} />
+                <input {...register("ean", { onBlur: handleCreateFieldBlur })} className={inputClassName} />
               </Field>
               <Field label="Artikelname">
-                <input {...register("articleName")} className={inputClassName} />
+                <input {...register("articleName", { onBlur: handleCreateFieldBlur })} className={inputClassName} />
+              </Field>
+              <Field label="SKU (optional)">
+                <input {...register("sku", { onBlur: handleCreateFieldBlur })} className={inputClassName} />
               </Field>
             </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <button className="rounded-full bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300" disabled={allIssues.length > 0 || preview === null} onClick={handlePdf} type="button">
-                PDF erzeugen
-              </button>
-              <p className="text-sm text-slate-600">Druckpfad in V1: PDF im neuen Fenster oeffnen und auf Windows ueber den lokalen Druckdialog drucken.</p>
-            </div>
-
-            {pdfMessage ? <p className="text-sm text-teal-800">{pdfMessage}</p> : null}
           </>
         ) : null}
 
@@ -619,11 +628,11 @@ export const LabelEditor = () => {
               </div>
 
               <Field label="Ausrichtung">
-                <select {...register("layout.textAlign")} className={inputClassName}>
+                <SelectControl {...register("layout.textAlign")}>
                   <option value="left">Links</option>
                   <option value="center">Zentriert</option>
                   <option value="right">Rechts</option>
-                </select>
+                </SelectControl>
               </Field>
 
               <div className="flex flex-wrap gap-4 text-sm text-slate-700">
@@ -641,7 +650,33 @@ export const LabelEditor = () => {
         ) : null}
       </section>
 
-      <div>{preview ? <LabelPreview spec={preview} /> : null}</div>
+      <div className="space-y-4">
+        {preview ? (
+          <LabelPreview spec={preview} />
+        ) : (
+          <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-panel">
+            <div className="mb-3 flex items-center justify-between text-sm text-slate-600">
+              <span>Live-Vorschau</span>
+              <span>{activeLayoutLabel}</span>
+            </div>
+            <div className="rounded-2xl bg-slate-100 p-6 text-sm text-slate-500">
+              Wähle einen Artikel aus oder erfasse EAN, Artikelname und SKU.
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-panel">
+          <button
+            className="w-full rounded-full bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+            disabled={allIssues.length > 0 || preview === null}
+            onClick={handlePdf}
+            type="button"
+          >
+            PDF erzeugen
+          </button>
+          {pdfMessage ? <p className="mt-3 text-sm text-teal-800">{pdfMessage}</p> : null}
+        </div>
+      </div>
     </div>
   );
 };
@@ -663,24 +698,39 @@ const TabButton = ({ active, children, onClick }: { active: boolean; children: R
   </button>
 );
 
+const SelectControl = ({ children, className = "", ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) => (
+  <div className="relative">
+    <select
+      {...props}
+      className={`w-full appearance-none rounded-2xl border border-slate-300 bg-slate-50 px-3 py-2 pr-10 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:bg-white ${className}`.trim()}
+    >
+      {children}
+    </select>
+    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-500" aria-hidden="true">
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 8L10 12L14 8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      </svg>
+    </span>
+  </div>
+);
+
 const inputClassName =
   "w-full rounded-2xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:bg-white";
 
 const layoutLabels: Record<keyof LabelFormValues["layout"], string> = {
   widthMm: "Breite mm",
-  heightMm: "Hoehe mm",
+  heightMm: "Höhe mm",
   marginTopMm: "Rand oben mm",
   marginRightMm: "Rand rechts mm",
   marginBottomMm: "Rand unten mm",
   marginLeftMm: "Rand links mm",
   articleNameFontSizePt: "Name pt",
   skuFontSizePt: "SKU pt",
-  barcodeHeightMm: "Barcodehoehe mm",
+  barcodeHeightMm: "Barcodehöhe mm",
   barcodeScale: "Barcode-Skalierung",
   textAlign: "Ausrichtung",
   showSku: "SKU anzeigen",
   showHumanReadableEan: "EAN-Klarschrift"
 };
-
 
 

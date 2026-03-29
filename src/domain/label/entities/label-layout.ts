@@ -48,7 +48,7 @@ export class LabelLayout {
     ];
 
     if (numericFields.some((value) => !Number.isFinite(value) || value < 0)) {
-      throw new Error("Layout values must be finite and non-negative.");
+      throw new Error("Layoutwerte müssen endlich und nicht negativ sein.");
     }
 
     const layout = new LabelLayout(
@@ -68,7 +68,7 @@ export class LabelLayout {
     );
 
     if (layout.printableWidthMm <= 0 || layout.printableHeightMm <= 0) {
-      throw new Error("Layout must leave a positive printable area.");
+      throw new Error("Das Layout muss eine positive druckbare Fläche übrig lassen.");
     }
 
     return layout;
@@ -82,3 +82,4 @@ export class LabelLayout {
     return this.heightMm - this.marginTopMm - this.marginBottomMm;
   }
 }
+

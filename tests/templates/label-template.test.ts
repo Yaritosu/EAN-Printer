@@ -25,7 +25,7 @@ describe("LabelTemplate", () => {
         createdAt: "2026-03-28T00:00:00.000Z",
         updatedAt: "2026-03-28T00:00:00.000Z"
       })
-    ).toThrow("Template name is required.");
+    ).toThrow("Ein Template-Name ist erforderlich.");
   });
 
   it("normalizes names case-insensitively", () => {

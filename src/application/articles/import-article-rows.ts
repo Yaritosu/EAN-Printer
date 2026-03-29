@@ -62,10 +62,11 @@ export const importArticleRows = (
     } catch (error) {
       errors.push({
         rowNumber,
-        message: error instanceof Error ? error.message : "Import row invalid."
+        message: error instanceof Error ? error.message : "Importzeile ist ungültig."
       });
     }
   });
 
   return { validRows, previewRows, errors };
 };
+

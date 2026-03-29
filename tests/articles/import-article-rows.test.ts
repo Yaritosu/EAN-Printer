@@ -19,6 +19,6 @@ describe("importArticleRows", () => {
     ]);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]?.rowNumber).toBe(2);
-    expect(result.errors[0]?.message).toContain("EAN must be exactly 13 digits.");
+    expect(result.errors[0]?.message).toContain("EAN muss genau 13 Ziffern enthalten.");
   });
 });

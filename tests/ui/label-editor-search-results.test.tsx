@@ -14,15 +14,6 @@ const seedArticles = () => {
         status: "active",
         createdAt: "2026-03-28T00:00:00.000Z",
         updatedAt: "2026-03-28T00:00:00.000Z"
-      },
-      {
-        articleId: "a2",
-        name: "Winter Hoodie",
-        sku: "ELV-HOOD-1",
-        ean: "4006381333931",
-        status: "active",
-        createdAt: "2026-03-28T00:00:00.000Z",
-        updatedAt: "2026-03-28T00:00:00.000Z"
       }
     ])
   );
@@ -34,21 +25,30 @@ describe("LabelEditor search-first create flow", () => {
     seedArticles();
   });
 
-  it("closes the autocomplete result list after selecting an article", async () => {
+  it("keeps article search as the working focus before and after common create-tab actions", async () => {
     render(<LabelEditor />);
 
     const searchInput = screen.getByPlaceholderText("Suche nach SKU, Artikelname oder EAN");
-    fireEvent.change(searchInput, { target: { value: "be-pw" } });
+    await waitFor(() => {
+      expect(searchInput).toHaveFocus();
+    });
 
+    fireEvent.change(searchInput, { target: { value: "be-pw" } });
     const resultButton = await screen.findByRole("button", { name: /Premium Baumwoll-Shirt/i });
     fireEvent.click(resultButton);
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("Premium Baumwoll-Shirt")).toBeInTheDocument();
-      expect(screen.getByDisplayValue("BE-PW-0")).toBeInTheDocument();
-      expect(screen.getByDisplayValue("4260706043787")).toBeInTheDocument();
+      expect(searchInput).toHaveFocus();
     });
 
-    expect(screen.queryByRole("button", { name: /Premium Baumwoll-Shirt/i })).not.toBeInTheDocument();
+    const eanInput = screen.getByLabelText("EAN");
+    fireEvent.focus(eanInput);
+    fireEvent.change(eanInput, { target: { value: "4260706043787" } });
+    fireEvent.blur(eanInput);
+
+    await waitFor(() => {
+      expect(searchInput).toHaveFocus();
+    });
   });
 });

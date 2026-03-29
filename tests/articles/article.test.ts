@@ -26,7 +26,7 @@ describe("Article", () => {
         createdAt: "2026-03-28T00:00:00.000Z",
         updatedAt: "2026-03-28T00:00:00.000Z"
       })
-    ).toThrow("Article name is required.");
+    ).toThrow("Artikelname ist erforderlich.");
   });
 
   it("rejects invalid optional EAN values", () => {
@@ -39,6 +39,6 @@ describe("Article", () => {
         createdAt: "2026-03-28T00:00:00.000Z",
         updatedAt: "2026-03-28T00:00:00.000Z"
       })
-    ).toThrow("EAN must be exactly 13 digits.");
+    ).toThrow("EAN muss genau 13 Ziffern enthalten.");
   });
 });
