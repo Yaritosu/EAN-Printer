@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -33,22 +33,25 @@ export const LabelPreview = ({ spec }: LabelPreviewProps) => {
             data-testid="preview-label"
             style={{ width: labelWidth, height: labelHeight }}
           >
-            {metrics.textRows.map((row) => (
-              <div
-                key={`${row.kind}-${row.value}`}
-                className={row.kind === "articleName" ? "absolute font-semibold text-slate-900" : "absolute text-slate-700"}
-                style={{
-                  left: `${metrics.contentBox.x * scale}px`,
-                  top: `${row.y * scale}px`,
-                  width: `${metrics.contentBox.width * scale}px`,
-                  fontSize: `${row.fontSizePt * (96 / 72)}px`,
-                  lineHeight: `${row.lineHeightMm * scale}px`,
-                  textAlign: row.align
-                }}
-              >
-                {row.value}
-              </div>
-            ))}
+            {metrics.textRows.map((row) => {
+              const isStrongRow = row.kind === "articleName" || row.kind === "locationCode";
+              return (
+                <div
+                  key={`${row.kind}-${row.value}`}
+                  className={isStrongRow ? "absolute font-semibold text-slate-900" : "absolute text-slate-700"}
+                  style={{
+                    left: `${metrics.contentBox.x * scale}px`,
+                    top: `${row.y * scale}px`,
+                    width: `${metrics.contentBox.width * scale}px`,
+                    fontSize: `${row.fontSizePt * (96 / 72)}px`,
+                    lineHeight: `${row.lineHeightMm * scale}px`,
+                    textAlign: row.align
+                  }}
+                >
+                  {row.value}
+                </div>
+              );
+            })}
 
             {barcodeFailed ? (
               <div

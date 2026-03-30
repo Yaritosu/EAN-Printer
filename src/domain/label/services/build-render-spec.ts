@@ -1,7 +1,7 @@
-import { LabelDocument } from "@/domain/label/entities/label-document";
+﻿import { LabelDocument } from "@/domain/label/entities/label-document";
 
 export type RenderTextBlock = {
-  kind: "articleName" | "sku" | "humanReadableEan";
+  kind: "articleName" | "sku" | "humanReadableEan" | "locationCode" | "locationArrow";
   value: string;
   fontSizePt: number;
   align: "left" | "center" | "right";

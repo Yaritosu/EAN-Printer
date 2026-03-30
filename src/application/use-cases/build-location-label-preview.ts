@@ -15,17 +15,22 @@ export const buildLocationLabelPreview = (input: LocationLabelPreviewInput): Ren
   const locationLabel = LocationLabel.create(input);
   const layout = LabelLayout.create(input.layout);
 
-  const textBlocks: RenderSpec["textBlocks"] = [];
+  const textBlocks: RenderSpec["textBlocks"] = [
+    {
+      kind: "locationCode",
+      value: locationLabel.locationCode,
+      fontSizePt: layout.articleNameFontSizePt + 4,
+      align: "center"
+    }
+  ];
 
   if (locationLabel.arrow === "up") {
-    textBlocks.push({ kind: "articleName", value: "↑", fontSizePt: layout.articleNameFontSizePt + 6, align: "center" });
+    textBlocks.push({ kind: "locationArrow", value: "↑", fontSizePt: layout.articleNameFontSizePt + 4, align: "center" });
   }
 
   if (locationLabel.arrow === "down") {
-    textBlocks.push({ kind: "articleName", value: "↓", fontSizePt: layout.articleNameFontSizePt + 6, align: "center" });
+    textBlocks.push({ kind: "locationArrow", value: "↓", fontSizePt: layout.articleNameFontSizePt + 4, align: "center" });
   }
-
-  textBlocks.push({ kind: "humanReadableEan", value: locationLabel.locationCode, fontSizePt: layout.articleNameFontSizePt + 4, align: "center" });
 
   return {
     widthMm: layout.resolvedWidthMm,

@@ -14,6 +14,8 @@ describe("buildLocationLabelPreview", () => {
 
     expect(preview.barcode.format).toBe("CODE128");
     expect(preview.barcode.value).toBe("01-02-01-04");
-    expect(preview.textBlocks.some((block) => block.value === "01-02-01-04")).toBe(true);
+    expect(preview.textBlocks.some((block) => block.kind === "locationCode" && block.value === "01-02-01-04")).toBe(true);
+    expect(preview.textBlocks.some((block) => block.kind === "locationArrow" && block.value === "↑")).toBe(true);
+    expect(preview.textBlocks.some((block) => block.kind === "humanReadableEan")).toBe(false);
   });
 });

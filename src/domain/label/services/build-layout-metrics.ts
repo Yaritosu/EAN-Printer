@@ -1,9 +1,10 @@
-import { type RenderSpec, type RenderTextBlock } from "@/domain/label/services/build-render-spec";
+﻿import { type RenderSpec, type RenderTextBlock } from "@/domain/label/services/build-render-spec";
 
 const lineHeightMultiplier = 1.15;
 const barcodeWidthFactor = 0.65;
 const humanReadableOffsetMm = 4.2;
 const textGapMm = 0.6;
+const locationRowGapMm = 1.1;
 const previewOutlinePaddingMm = 1.1;
 const previewOutlineGapMm = 0.8;
 const pointsToMm = (points: number): number => (points * 25.4) / 72;
@@ -62,12 +63,23 @@ export const buildLayoutMetrics = (spec: RenderSpec): LayoutMetrics => {
   };
 
   const humanReadableRowSource = spec.textBlocks.find((block) => block.kind === "humanReadableEan") ?? null;
-  const textSources = spec.textBlocks.filter((block) => block.kind !== "humanReadableEan");
+  const locationCodeSource = spec.textBlocks.find((block) => block.kind === "locationCode") ?? null;
+  const locationArrowSource = spec.textBlocks.find((block) => block.kind === "locationArrow") ?? null;
+  const hasLocationFooter = Boolean(locationCodeSource);
+  const textSources = spec.textBlocks.filter(
+    (block) =>
+      block.kind !== "humanReadableEan" &&
+      block.kind !== "locationCode" &&
+      block.kind !== "locationArrow"
+  );
 
+  const locationCodeLineHeightMm = locationCodeSource ? pointsToMm(locationCodeSource.fontSizePt * lineHeightMultiplier) : 0;
+  const locationFooterReserveMm = hasLocationFooter ? locationCodeLineHeightMm + locationRowGapMm : 0;
   const barcodeYOffset = humanReadableRowSource ? humanReadableOffsetMm : 0;
+  const barcodeBottom = spec.heightMm - spec.marginsMm.bottom - barcodeYOffset - locationFooterReserveMm;
   const barcodeBox = {
     x: contentBox.x + (contentBox.width - contentBox.width * barcodeWidthFactor) / 2,
-    y: spec.heightMm - spec.marginsMm.bottom - spec.barcode.heightMm - barcodeYOffset,
+    y: barcodeBottom - spec.barcode.heightMm,
     width: contentBox.width * barcodeWidthFactor,
     height: spec.barcode.heightMm
   };
@@ -88,7 +100,37 @@ export const buildLayoutMetrics = (spec: RenderSpec): LayoutMetrics => {
     return row;
   });
 
-  const humanReadableRow = humanReadableRowSource
+  if (locationCodeSource) {
+    const locationCodeWidthMm = estimateTextWidthMm(locationCodeSource.value, locationCodeSource.fontSizePt);
+    const locationArrowWidthMm = locationArrowSource
+      ? estimateTextWidthMm(locationArrowSource.value, locationArrowSource.fontSizePt)
+      : 0;
+    const locationGapMm = locationArrowSource ? 1.4 : 0;
+    const combinedWidthMm = locationCodeWidthMm + locationArrowWidthMm + locationGapMm;
+    const combinedX = contentBox.x + (contentBox.width - combinedWidthMm) / 2;
+    const rowY = barcodeBox.y + barcodeBox.height + locationRowGapMm;
+
+    textRows.push({
+      ...locationCodeSource,
+      x: combinedX,
+      y: rowY,
+      estimatedWidthMm: locationCodeWidthMm,
+      lineHeightMm: locationCodeLineHeightMm
+    });
+
+    if (locationArrowSource) {
+      const locationArrowLineHeightMm = pointsToMm(locationArrowSource.fontSizePt * lineHeightMultiplier);
+      textRows.push({
+        ...locationArrowSource,
+        x: combinedX + locationCodeWidthMm + locationGapMm,
+        y: rowY,
+        estimatedWidthMm: locationArrowWidthMm,
+        lineHeightMm: locationArrowLineHeightMm
+      });
+    }
+  }
+
+  const humanReadableRow = humanReadableRowSource && !hasLocationFooter
     ? {
         ...humanReadableRowSource,
         x: computeAlignedX(

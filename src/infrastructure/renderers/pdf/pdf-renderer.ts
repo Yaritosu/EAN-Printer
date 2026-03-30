@@ -1,4 +1,4 @@
-import bwipjs from "bwip-js";
+﻿import bwipjs from "bwip-js";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 import { buildLayoutMetrics } from "@/domain/label/services/build-layout-metrics";
@@ -53,7 +53,7 @@ export const renderPdf = async (spec: RenderSpec): Promise<Uint8Array> => {
   });
 
   for (const row of metrics.textRows) {
-    const drawFont = row.kind === "articleName" ? boldFont : font;
+    const drawFont = row.kind === "articleName" || row.kind === "locationCode" ? boldFont : font;
     page.drawText(row.value, {
       x: mmToPoints(row.x),
       y: height - mmToPoints(row.y + row.lineHeightMm),
