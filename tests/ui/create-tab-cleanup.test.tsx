@@ -10,9 +10,14 @@ describe("LabelEditor create tab cleanup", () => {
   it("starts with a cleaned-up create tab and empty manual fields", () => {
     render(<LabelEditor />);
 
+    expect(screen.getByText("Elvent Tools")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Label Manager" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Etikett drucken" })).toBeInTheDocument();
+
     expect(screen.queryByText(/Lokale Artikeldatenbasis, Layout-Templates/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Label ist fachlich druckbar.")).not.toBeInTheDocument();
     expect(screen.queryByText("Aktives Layout")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Treffer erscheinen direkt unter dem Suchfeld/i)).not.toBeInTheDocument();
 
     expect(screen.getByLabelText("EAN")).toHaveValue("");
     expect(screen.getByLabelText("Artikelname")).toHaveValue("");

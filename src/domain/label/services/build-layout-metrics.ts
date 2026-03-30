@@ -4,6 +4,8 @@ const lineHeightMultiplier = 1.15;
 const barcodeWidthFactor = 0.65;
 const humanReadableOffsetMm = 4.2;
 const textGapMm = 0.6;
+const previewOutlinePaddingMm = 1.1;
+const previewOutlineGapMm = 0.8;
 const pointsToMm = (points: number): number => (points * 25.4) / 72;
 
 type LayoutTextRow = RenderTextBlock & {
@@ -24,6 +26,7 @@ export type LayoutMetrics = {
   labelBox: LayoutBox;
   contentBox: LayoutBox;
   barcodeBox: LayoutBox;
+  previewOutlineBox: LayoutBox;
   textRows: LayoutTextRow[];
   humanReadableRow: LayoutTextRow | null;
 };
@@ -100,6 +103,13 @@ export const buildLayoutMetrics = (spec: RenderSpec): LayoutMetrics => {
       }
     : null;
 
+  const lastTextBottom = textRows.reduce((maxBottom, row) => Math.max(maxBottom, row.y + row.lineHeightMm), contentBox.y);
+  const outlineTop = Math.max(lastTextBottom + previewOutlineGapMm, barcodeBox.y - previewOutlinePaddingMm);
+  const outlineBottomSource = humanReadableRow
+    ? humanReadableRow.y + humanReadableRow.lineHeightMm
+    : barcodeBox.y + barcodeBox.height;
+  const outlineBottom = Math.min(contentBox.y + contentBox.height, outlineBottomSource + previewOutlinePaddingMm);
+
   return {
     labelBox: {
       x: 0,
@@ -109,6 +119,12 @@ export const buildLayoutMetrics = (spec: RenderSpec): LayoutMetrics => {
     },
     contentBox,
     barcodeBox,
+    previewOutlineBox: {
+      x: contentBox.x,
+      y: outlineTop,
+      width: contentBox.width,
+      height: Math.max(0, outlineBottom - outlineTop)
+    },
     textRows,
     humanReadableRow
   };

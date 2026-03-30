@@ -23,14 +23,14 @@ describe("LabelEditor article maintenance flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Artikel speichern" }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Formular ist bereit für den nächsten Artikel/i)).toBeInTheDocument();
+      expect(screen.getByText(/Formular ist bereit/i)).toBeInTheDocument();
     });
 
     expect(screen.getByLabelText("Artikelname")).toHaveValue("");
     expect(screen.getByLabelText("SKU (optional)")).toHaveValue("");
     expect(screen.getByLabelText("EAN (optional)")).toHaveValue("");
 
-    fireEvent.click(screen.getByRole("button", { name: "Etikett erstellen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Etikett drucken" }));
 
     const searchInput = screen.getByPlaceholderText("Suche nach SKU, Artikelname oder EAN");
     fireEvent.change(searchInput, { target: { value: "jack" } });
