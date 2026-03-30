@@ -537,7 +537,7 @@ export const LabelEditor = () => {
               <div className="rounded-[24px] border border-teal-200 bg-teal-50/70 px-4 py-3 text-sm text-slate-700">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-slate-900">Ausgew\u00e4hlter Artikel</p>
+                    <p className="font-semibold text-slate-900">{"Ausgewählter Artikel"}</p>
                     <p className="mt-1">{selectedArticle.name}</p>
                     <p className="mt-1 text-slate-500">
                       {selectedArticle.sku ? `SKU ${selectedArticle.sku}` : "ohne SKU"}
@@ -549,7 +549,7 @@ export const LabelEditor = () => {
                     onClick={handleSelectedArticleClear}
                     type="button"
                   >
-                    Auswahl l\u00f6sen
+                    {"Auswahl lösen"}
                   </button>
                 </div>
               </div>
@@ -656,7 +656,7 @@ export const LabelEditor = () => {
               <span>{activeLayoutLabel}</span>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
-              W\u00e4hle einen Artikel aus oder erfasse EAN, Artikelname und SKU.
+              {"Wähle einen Artikel aus oder erfasse EAN, Artikelname und SKU."}
             </div>
           </div>
         )}

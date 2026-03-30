@@ -39,6 +39,8 @@ describe("LabelEditor search-first create flow", () => {
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("Premium Baumwoll-Shirt")).toBeInTheDocument();
+      expect(screen.getByText(/Ausgew/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Auswahl l/i })).toBeInTheDocument();
       expect(searchInput).toHaveFocus();
     });
 
