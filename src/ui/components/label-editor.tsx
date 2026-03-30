@@ -254,13 +254,13 @@ export const LabelEditor = () => {
         level: locationDraft.level,
         bin: locationDraft.bin,
         arrow: locationDraft.arrow,
-        layout: getValues("layout")
+        layout: values.layout
       });
       return [];
     } catch (error) {
       return [error instanceof Error ? error.message : "Stellplatz-Vorschau konnte nicht erzeugt werden."];
     }
-  }, [getValues, locationDraft]);
+  }, [locationDraft, values.layout]);
 
   const locationPreview = useMemo(() => {
     try {
@@ -278,10 +278,7 @@ export const LabelEditor = () => {
   }, [locationDraft, values.layout]);
 
   const applyLayout = (layout: LabelLayoutProps) => {
-    const entries = Object.entries(layout) as Array<[keyof LabelLayoutProps, LabelLayoutProps[keyof LabelLayoutProps]]>;
-    for (const [key, value] of entries) {
-      setValue(`layout.${key}` as const, value, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
-    }
+    setValue("layout", { ...layout }, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
   };
 
   const handleLayoutSelection = (layoutId: string) => {

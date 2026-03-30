@@ -38,14 +38,13 @@ export const LabelPreview = ({ spec }: LabelPreviewProps) => {
               return (
                 <div
                   key={`${row.kind}-${row.value}`}
-                  className={isStrongRow ? "absolute font-semibold text-slate-900" : "absolute text-slate-700"}
+                  className={isStrongRow ? "absolute whitespace-nowrap font-semibold text-slate-900" : "absolute whitespace-nowrap text-slate-700"}
                   style={{
-                    left: `${metrics.contentBox.x * scale}px`,
+                    left: `${row.x * scale}px`,
                     top: `${row.y * scale}px`,
-                    width: `${metrics.contentBox.width * scale}px`,
+                    width: `${Math.max(row.estimatedWidthMm, 1) * scale}px`,
                     fontSize: `${row.fontSizePt * (96 / 72)}px`,
-                    lineHeight: `${row.lineHeightMm * scale}px`,
-                    textAlign: row.align
+                    lineHeight: `${row.lineHeightMm * scale}px`
                   }}
                 >
                   {row.value}
@@ -83,14 +82,13 @@ export const LabelPreview = ({ spec }: LabelPreviewProps) => {
 
             {metrics.humanReadableRow ? (
               <div
-                className="absolute text-slate-700"
+                className="absolute whitespace-nowrap text-slate-700"
                 style={{
-                  left: `${metrics.contentBox.x * scale}px`,
+                  left: `${metrics.humanReadableRow.x * scale}px`,
                   top: `${metrics.humanReadableRow.y * scale}px`,
-                  width: `${metrics.contentBox.width * scale}px`,
+                  width: `${Math.max(metrics.humanReadableRow.estimatedWidthMm, 1) * scale}px`,
                   fontSize: `${metrics.humanReadableRow.fontSizePt * (96 / 72)}px`,
-                  lineHeight: `${metrics.humanReadableRow.lineHeightMm * scale}px`,
-                  textAlign: metrics.humanReadableRow.align
+                  lineHeight: `${metrics.humanReadableRow.lineHeightMm * scale}px`
                 }}
               >
                 {metrics.humanReadableRow.value}

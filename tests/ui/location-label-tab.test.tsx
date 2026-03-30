@@ -23,4 +23,19 @@ describe("LabelEditor location label tab", () => {
     expect(screen.getByText(/Stellplatzcode/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Stellplatz-PDF erzeugen" })).toBeInTheDocument();
   });
+
+  it("updates the live preview when a different location layout is selected", () => {
+    render(<LabelEditor />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Stellplatz-Label" }));
+    fireEvent.change(screen.getByLabelText("Regal"), { target: { value: "01" } });
+    fireEvent.change(screen.getByLabelText("Block"), { target: { value: "01" } });
+    fireEvent.change(screen.getByLabelText("Ebene"), { target: { value: "01" } });
+    fireEvent.change(screen.getByLabelText("Fach"), { target: { value: "01" } });
+
+    const layoutSelect = screen.getByLabelText("Layout / Etikettenformat");
+    fireEvent.change(layoutSelect, { target: { value: "preset-a6-label" } });
+
+    expect(screen.getByText("148 x 105 mm")).toBeInTheDocument();
+  });
 });
