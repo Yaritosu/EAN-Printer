@@ -1,40 +1,26 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+﻿import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import { LabelEditor } from "@/ui/components/label-editor";
 
-describe("LabelEditor article maintenance flow", () => {
+describe("LabelEditor shopify preparation flow", () => {
   beforeEach(() => {
     window.localStorage.clear();
   });
 
-  it("clears the manual article form after save and makes the article available in create search", async () => {
+  it("stores a shopify configuration locally and shows it as prepared", async () => {
     render(<LabelEditor />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Artikel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Import/API" }));
 
-    const nameInput = screen.getByLabelText("Artikelname");
-    const skuInput = screen.getByLabelText("SKU (optional)");
-    const eanInput = screen.getByLabelText("EAN (optional)");
+    fireEvent.change(screen.getByLabelText("Shop-Domain"), { target: { value: "elvent-3.myshopify.com" } });
+    fireEvent.change(screen.getByLabelText("Admin API Token"), { target: { value: "shpat_test_token" } });
+    fireEvent.change(screen.getByLabelText("API-Version"), { target: { value: "2026-01" } });
 
-    fireEvent.change(nameInput, { target: { value: "Testjacke" } });
-    fireEvent.change(skuInput, { target: { value: "ELV-JACK-7" } });
-    fireEvent.change(eanInput, { target: { value: "4260706043787" } });
-
-    fireEvent.click(screen.getByRole("button", { name: "Artikel speichern" }));
+    fireEvent.click(screen.getByRole("button", { name: "Verbindung speichern" }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Formular ist bereit/i)).toBeInTheDocument();
+      expect(screen.getByText(/Shopify-Konfiguration für elvent-3\.myshopify\.com wurde gespeichert\./i)).toBeInTheDocument();
+      expect(screen.getByText(/Konfiguration gespeichert für elvent-3\.myshopify\.com/i)).toBeInTheDocument();
     });
-
-    expect(screen.getByLabelText("Artikelname")).toHaveValue("");
-    expect(screen.getByLabelText("SKU (optional)")).toHaveValue("");
-    expect(screen.getByLabelText("EAN (optional)")).toHaveValue("");
-
-    fireEvent.click(screen.getByRole("button", { name: "Etikett drucken" }));
-
-    const searchInput = screen.getByPlaceholderText("Suche nach SKU, Artikelname oder EAN");
-    fireEvent.change(searchInput, { target: { value: "jack" } });
-
-    expect(await screen.findByRole("button", { name: /Testjacke/i })).toBeInTheDocument();
   });
 });

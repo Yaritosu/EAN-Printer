@@ -1,26 +1,32 @@
-"use client";
+﻿"use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { deleteArticle } from "@/application/articles/delete-article";
 import { filterArticles } from "@/application/articles/filter-articles";
 import { importArticleRows } from "@/application/articles/import-article-rows";
 import { listArticles } from "@/application/articles/list-articles";
 import { saveArticle } from "@/application/articles/save-article";
+import { loadShopifyConfig } from "@/application/shopify/load-shopify-config";
+import { saveShopifyConfig } from "@/application/shopify/save-shopify-config";
 import { deleteTemplate } from "@/application/templates/delete-template";
 import { listTemplates } from "@/application/templates/list-templates";
 import { saveTemplate } from "@/application/templates/save-template";
+import { buildLocationLabelPreview } from "@/application/use-cases/build-location-label-preview";
 import { buildPreview } from "@/application/use-cases/build-preview";
 import { type Article } from "@/domain/articles/entities/article";
+import { type LocationArrow } from "@/domain/location-label/entities/location-label";
 import { type LabelLayoutProps } from "@/domain/label/entities/label-layout";
+import { type ShopifyConfig } from "@/domain/shopify/entities/shopify-config";
 import { type LabelTemplate } from "@/domain/templates/entities/label-template";
 import { LocalStorageArticleRepository } from "@/infrastructure/storage/local-storage-article-repository";
+import { LocalStorageShopifyConfigRepository } from "@/infrastructure/storage/local-storage-shopify-config-repository";
 import { LocalStorageTemplateRepository } from "@/infrastructure/storage/local-storage-template-repository";
-import { ArticleManager } from "@/ui/components/article-manager";
+import { ImportApiPanel } from "@/ui/components/import-api-panel";
 import { LabelPreview } from "@/ui/components/label-preview";
+import { LocationLabelEditor } from "@/ui/components/location-label-editor";
 import { TemplateManager } from "@/ui/components/template-manager";
 import { ValidationSummary } from "@/ui/components/validation-summary";
 import { defaultLayout } from "@/ui/defaults/default-layout";
@@ -42,7 +48,7 @@ const labelSchema = z.object({
 });
 
 type LabelFormValues = z.infer<typeof labelSchema>;
-type EditorTab = "create" | "articles" | "layout";
+type EditorTab = "create" | "location" | "importApi" | "layout";
 
 type LayoutOption = {
   id: string;
@@ -67,6 +73,20 @@ type ImportBuffer = {
   errorMessages: string[];
 };
 
+type ShopifyDraft = {
+  shopDomain: string;
+  adminApiToken: string;
+  apiVersion: string;
+};
+
+type LocationDraft = {
+  aisle: string;
+  block: string;
+  level: string;
+  bin: string;
+  arrow: LocationArrow;
+};
+
 const numericFieldNames: Array<keyof LabelFormValues["layout"]> = [
   "widthMm",
   "heightMm",
@@ -79,19 +99,31 @@ const numericFieldNames: Array<keyof LabelFormValues["layout"]> = [
 export const LabelEditor = () => {
   const [activeTab, setActiveTab] = useState<EditorTab>("create");
   const [pdfMessage, setPdfMessage] = useState("");
+  const [locationPdfMessage, setLocationPdfMessage] = useState("");
   const [templateMessage, setTemplateMessage] = useState("");
-  const [articleMessage, setArticleMessage] = useState("");
+  const [shopifyMessage, setShopifyMessage] = useState("");
   const [importMessage, setImportMessage] = useState("");
   const [templateName, setTemplateName] = useState("");
   const [activeLayoutId, setActiveLayoutId] = useState<string>(layoutPresets[0].id);
   const [templates, setTemplates] = useState<LabelTemplate[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [shopifyConfig, setShopifyConfig] = useState<ShopifyConfig | null>(null);
+  const [shopifyDraft, setShopifyDraft] = useState<ShopifyDraft>({
+    shopDomain: "",
+    adminApiToken: "",
+    apiVersion: "2026-01"
+  });
   const [selectedArticleId, setSelectedArticleId] = useState("");
   const [articleSearch, setArticleSearch] = useState("");
-  const [editingArticleId, setEditingArticleId] = useState("");
   const [isArticleSearchOpen, setIsArticleSearchOpen] = useState(false);
-  const [articleDraft, setArticleDraft] = useState({ name: "", sku: "", ean: "" });
   const [importBuffer, setImportBuffer] = useState<ImportBuffer | null>(null);
+  const [locationDraft, setLocationDraft] = useState<LocationDraft>({
+    aisle: "",
+    block: "",
+    level: "",
+    bin: "",
+    arrow: "none"
+  });
   const articleSearchInputRef = useRef<HTMLInputElement | null>(null);
 
   const templateRepository = useMemo(
@@ -100,6 +132,10 @@ export const LabelEditor = () => {
   );
   const articleRepository = useMemo(
     () => (typeof window === "undefined" ? null : new LocalStorageArticleRepository(window.localStorage)),
+    []
+  );
+  const shopifyRepository = useMemo(
+    () => (typeof window === "undefined" ? null : new LocalStorageShopifyConfigRepository(window.localStorage)),
     []
   );
 
@@ -134,10 +170,24 @@ export const LabelEditor = () => {
     setArticles(await listArticles(articleRepository));
   };
 
+  const refreshShopifyConfig = async () => {
+    if (!shopifyRepository) return;
+    const config = await loadShopifyConfig(shopifyRepository);
+    setShopifyConfig(config);
+    if (config) {
+      setShopifyDraft({
+        shopDomain: config.shopDomain,
+        adminApiToken: config.adminApiToken,
+        apiVersion: config.apiVersion
+      });
+    }
+  };
+
   useEffect(() => {
     void refreshTemplates();
     void refreshArticles();
-  }, [templateRepository, articleRepository]);
+    void refreshShopifyConfig();
+  }, [templateRepository, articleRepository, shopifyRepository]);
 
   useEffect(() => {
     if (activeTab === "create") {
@@ -166,7 +216,7 @@ export const LabelEditor = () => {
   );
 
   const values = watch();
-  const domainIssues = useMemo(() => {
+  const createDomainIssues = useMemo(() => {
     try {
       buildPreview(values);
       return [];
@@ -187,7 +237,7 @@ export const LabelEditor = () => {
     return [...new Set(collected)];
   }, [errors]);
 
-  const allIssues = [...fieldIssues, ...domainIssues];
+  const createIssues = [...fieldIssues, ...createDomainIssues];
   const preview = useMemo(() => {
     try {
       return buildPreview(values);
@@ -195,6 +245,37 @@ export const LabelEditor = () => {
       return null;
     }
   }, [values]);
+
+  const locationIssues = useMemo(() => {
+    try {
+      buildLocationLabelPreview({
+        aisle: locationDraft.aisle,
+        block: locationDraft.block,
+        level: locationDraft.level,
+        bin: locationDraft.bin,
+        arrow: locationDraft.arrow,
+        layout: getValues("layout")
+      });
+      return [];
+    } catch (error) {
+      return [error instanceof Error ? error.message : "Stellplatz-Vorschau konnte nicht erzeugt werden."];
+    }
+  }, [getValues, locationDraft]);
+
+  const locationPreview = useMemo(() => {
+    try {
+      return buildLocationLabelPreview({
+        aisle: locationDraft.aisle,
+        block: locationDraft.block,
+        level: locationDraft.level,
+        bin: locationDraft.bin,
+        arrow: locationDraft.arrow,
+        layout: values.layout
+      });
+    } catch {
+      return null;
+    }
+  }, [locationDraft, values.layout]);
 
   const applyLayout = (layout: LabelLayoutProps) => {
     const entries = Object.entries(layout) as Array<[keyof LabelLayoutProps, LabelLayoutProps[keyof LabelLayoutProps]]>;
@@ -208,7 +289,9 @@ export const LabelEditor = () => {
     const selectedOption = layoutOptions.find((option) => option.id === layoutId);
     if (!selectedOption) return;
     applyLayout(selectedOption.layout);
-    focusArticleSearch();
+    if (activeTab === "create") {
+      focusArticleSearch();
+    }
   };
 
   const handleConfiguratorLayoutSelect = (layoutId: string) => {
@@ -269,6 +352,32 @@ export const LabelEditor = () => {
     focusArticleSearch();
   };
 
+  const handleLocationPdf = async () => {
+    setLocationPdfMessage("");
+    const payload = {
+      aisle: locationDraft.aisle,
+      block: locationDraft.block,
+      level: locationDraft.level,
+      bin: locationDraft.bin,
+      arrow: locationDraft.arrow,
+      layout: values.layout
+    };
+    const response = await fetch("/api/location-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+      const payloadError = (await response.json().catch(() => null)) as { error?: string } | null;
+      setLocationPdfMessage(payloadError?.error ?? "Stellplatz-PDF konnte nicht erzeugt werden.");
+      return;
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener,noreferrer");
+    setLocationPdfMessage("Stellplatz-PDF wurde in einem neuen Fenster geöffnet.");
+  };
+
   const handleTemplateSave = async () => {
     if (!templateRepository) return;
     try {
@@ -298,63 +407,6 @@ export const LabelEditor = () => {
     applyLayout(layoutPresets[0].layout);
     setTemplateName("");
     setTemplateMessage(`Layout "${activeTemplate.name}" wurde gelöscht.`);
-  };
-
-  const handleDraftChange = (field: "name" | "sku" | "ean", value: string) => {
-    setArticleDraft((current) => ({ ...current, [field]: value }));
-  };
-
-  const handleArticleSelectForEdit = (articleId: string) => {
-    setEditingArticleId(articleId);
-    const selectedArticleForEdit = articles.find((article) => article.articleId === articleId);
-    if (!selectedArticleForEdit) {
-      setArticleDraft({ name: "", sku: "", ean: "" });
-      return;
-    }
-    setArticleDraft({
-      name: selectedArticleForEdit.name,
-      sku: selectedArticleForEdit.sku ?? "",
-      ean: selectedArticleForEdit.ean ?? ""
-    });
-    setArticleMessage("");
-  };
-
-  const handleArticleSave = async () => {
-    if (!articleRepository) return;
-    try {
-      const saved = await saveArticle(articleRepository, {
-        articleId: editingArticleId || undefined,
-        name: articleDraft.name,
-        sku: articleDraft.sku || undefined,
-        ean: articleDraft.ean || undefined
-      });
-      await refreshArticles();
-      setEditingArticleId("");
-      setArticleDraft({ name: "", sku: "", ean: "" });
-      setArticleMessage(`Artikel "${saved.name}" wurde gespeichert. Das Formular ist bereit für den nächsten Artikel.`);
-    } catch (error) {
-      setArticleMessage(error instanceof Error ? error.message : "Artikel konnte nicht gespeichert werden.");
-    }
-  };
-
-  const handleArticleDelete = async () => {
-    if (!articleRepository || !editingArticleId) return;
-    const selectedArticleForEdit = articles.find((article) => article.articleId === editingArticleId);
-    await deleteArticle(articleRepository, editingArticleId);
-    await refreshArticles();
-    if (selectedArticleForEdit && selectedArticleForEdit.articleId === selectedArticleId) {
-      setSelectedArticleId("");
-      setArticleSearch("");
-    }
-    setEditingArticleId("");
-    setArticleDraft({ name: "", sku: "", ean: "" });
-    setArticleMessage(selectedArticleForEdit ? `Artikel "${selectedArticleForEdit.name}" wurde gelöscht.` : "Artikel wurde gelöscht.");
-  };
-
-  const handleArticleReset = () => {
-    setEditingArticleId("");
-    setArticleDraft({ name: "", sku: "", ean: "" });
-    setArticleMessage("");
   };
 
   const handleImportFile = async (file: File) => {
@@ -402,8 +454,28 @@ export const LabelEditor = () => {
     setImportBuffer(null);
   };
 
+  const handleShopifyDraftChange = (field: keyof ShopifyDraft, value: string) => {
+    setShopifyDraft((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSaveShopifyConfig = async () => {
+    if (!shopifyRepository) return;
+    try {
+      const saved = await saveShopifyConfig(shopifyRepository, shopifyDraft);
+      setShopifyConfig(saved);
+      setShopifyMessage(`Shopify-Konfiguration für ${saved.shopDomain} wurde gespeichert.`);
+    } catch (error) {
+      setShopifyMessage(error instanceof Error ? error.message : "Shopify-Konfiguration konnte nicht gespeichert werden.");
+    }
+  };
+
+  const handleLocationDraftChange = (field: keyof LocationDraft, value: string) => {
+    setLocationDraft((current) => ({ ...current, [field]: value as LocationDraft[keyof LocationDraft] }));
+  };
+
   const activeLayoutLabel = activeLayoutOption?.name ?? layoutPresets[0].name;
   const canDeleteLayout = activeLayoutOption?.source === "template";
+  const orientationField = register("layout.orientation");
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -415,13 +487,14 @@ export const LabelEditor = () => {
 
         <div className="flex flex-wrap gap-3 rounded-full bg-slate-100 p-1">
           <TabButton active={activeTab === "create"} onClick={() => setActiveTab("create")}>Etikett drucken</TabButton>
-          <TabButton active={activeTab === "articles"} onClick={() => setActiveTab("articles")}>Artikel</TabButton>
+          <TabButton active={activeTab === "location"} onClick={() => setActiveTab("location")}>Stellplatz-Label</TabButton>
+          <TabButton active={activeTab === "importApi"} onClick={() => setActiveTab("importApi")}>Import/API</TabButton>
           <TabButton active={activeTab === "layout"} onClick={() => setActiveTab("layout")}>Layout konfigurieren</TabButton>
         </div>
 
         {activeTab === "create" ? (
           <>
-            <ValidationSummary issues={allIssues} />
+            <ValidationSummary issues={createIssues} />
 
             <div className="grid gap-4 rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 md:grid-cols-[1fr_1fr]">
               <Field label="Layout / Etikettenformat">
@@ -461,11 +534,7 @@ export const LabelEditor = () => {
                   </Field>
 
                   {showArticleSearchResults ? (
-                    <div
-                      className="absolute left-0 right-0 top-full z-20 mt-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg"
-                      id="article-search-results"
-                      role="listbox"
-                    >
+                    <div className="absolute left-0 right-0 top-full z-20 mt-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg" id="article-search-results" role="listbox">
                       {filteredArticles.length === 0 ? (
                         <p className="px-2 py-2 text-sm text-slate-500">Keine passenden Artikel gefunden.</p>
                       ) : (
@@ -504,11 +573,7 @@ export const LabelEditor = () => {
                       {selectedArticle.ean ? ` | EAN ${selectedArticle.ean}` : " | ohne EAN"}
                     </p>
                   </div>
-                  <button
-                    className="rounded-full border border-teal-200 bg-white px-3 py-1 text-xs font-semibold text-teal-800 transition hover:bg-teal-100"
-                    onClick={handleSelectedArticleClear}
-                    type="button"
-                  >
+                  <button className="rounded-full border border-teal-200 bg-white px-3 py-1 text-xs font-semibold text-teal-800 transition hover:bg-teal-100" onClick={handleSelectedArticleClear} type="button">
                     Auswahl lösen
                   </button>
                 </div>
@@ -529,11 +594,21 @@ export const LabelEditor = () => {
           </>
         ) : null}
 
-        {activeTab === "articles" ? (
-          <ArticleManager
-            articleDraft={articleDraft}
-            articleMessage={articleMessage}
-            articles={articles}
+        {activeTab === "location" ? (
+          <>
+            <ValidationSummary issues={locationIssues} />
+            <LocationLabelEditor
+              activeLayoutId={activeLayoutId}
+              layoutOptions={layoutOptions.map((option) => ({ id: option.id, name: option.name, source: option.source }))}
+              locationDraft={locationDraft}
+              onDraftChange={handleLocationDraftChange}
+              onLayoutSelect={handleLayoutSelection}
+            />
+          </>
+        ) : null}
+
+        {activeTab === "importApi" ? (
+          <ImportApiPanel
             importMessage={importMessage}
             importPreview={
               importBuffer
@@ -545,14 +620,14 @@ export const LabelEditor = () => {
                   }
                 : null
             }
-            onArticleSelect={handleArticleSelectForEdit}
-            onDeleteArticle={handleArticleDelete}
-            onDraftChange={handleDraftChange}
+            localArticleCount={articles.length}
             onImportConfirm={handleImportConfirm}
             onImportFile={handleImportFile}
-            onResetArticle={handleArticleReset}
-            onSaveArticle={handleArticleSave}
-            selectedArticleId={editingArticleId}
+            onSaveShopifyConfig={handleSaveShopifyConfig}
+            onShopifyDraftChange={handleShopifyDraftChange}
+            shopifyConfig={shopifyConfig}
+            shopifyDraft={shopifyDraft}
+            shopifyMessage={shopifyMessage}
           />
         ) : null}
 
@@ -582,7 +657,7 @@ export const LabelEditor = () => {
               </div>
 
               <Field label="Layout-Ausrichtung">
-                <SelectControl {...register("layout.orientation") as { value?: string; onChange?: React.ChangeEventHandler<HTMLSelectElement>; onBlur?: React.FocusEventHandler<HTMLSelectElement>; name: string; ref: React.Ref<HTMLSelectElement> }}>
+                <SelectControl {...orientationField}>
                   <option value="landscape">Querformat</option>
                   <option value="portrait">Hochformat</option>
                 </SelectControl>
@@ -593,35 +668,70 @@ export const LabelEditor = () => {
       </section>
 
       <div className="space-y-4">
-        {preview ? (
-          <LabelPreview spec={preview} />
-        ) : (
+        {activeTab === "location" ? (
+          <>
+            {locationPreview ? (
+              <LabelPreview spec={locationPreview} />
+            ) : (
+              <PlaceholderPreview label={activeLayoutLabel} message="Gib Regal, Block, Ebene und Fach ein, um das Stellplatz-Label zu sehen." />
+            )}
+            <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-panel">
+              <button
+                className="w-full rounded-full bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                disabled={locationIssues.length > 0 || locationPreview === null}
+                onClick={handleLocationPdf}
+                type="button"
+              >
+                Stellplatz-PDF erzeugen
+              </button>
+              {locationPdfMessage ? <p className="mt-3 text-sm text-teal-800">{locationPdfMessage}</p> : null}
+            </div>
+          </>
+        ) : activeTab === "importApi" ? (
           <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-panel">
             <div className="mb-3 flex items-center justify-between text-sm text-slate-600">
-              <span>Live-Vorschau</span>
-              <span>{activeLayoutLabel}</span>
+              <span>Import/API</span>
+              <span>Shopify + CSV/XLSX</span>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
-              Wähle einen Artikel aus oder erfasse EAN, Artikelname und SKU.
+              Shopify-Verbindung und Import werden hier vorbereitet. Produktabruf und Verbindungstest folgen im nächsten Schritt.
             </div>
           </div>
-        )}
+        ) : (
+          <>
+            {preview ? (
+              <LabelPreview spec={preview} />
+            ) : (
+              <PlaceholderPreview label={activeLayoutLabel} message="Wähle einen Artikel aus oder erfasse EAN, Artikelname und SKU." />
+            )}
 
-        <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-panel">
-          <button
-            className="w-full rounded-full bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-            disabled={allIssues.length > 0 || preview === null}
-            onClick={handlePdf}
-            type="button"
-          >
-            PDF erzeugen
-          </button>
-          {pdfMessage ? <p className="mt-3 text-sm text-teal-800">{pdfMessage}</p> : null}
-        </div>
+            <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-panel">
+              <button
+                className="w-full rounded-full bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                disabled={createIssues.length > 0 || preview === null}
+                onClick={handlePdf}
+                type="button"
+              >
+                PDF erzeugen
+              </button>
+              {pdfMessage ? <p className="mt-3 text-sm text-teal-800">{pdfMessage}</p> : null}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 };
+
+const PlaceholderPreview = ({ label, message }: { label: string; message: string }) => (
+  <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-panel">
+    <div className="mb-3 flex items-center justify-between text-sm text-slate-600">
+      <span>Live-Vorschau</span>
+      <span>{label}</span>
+    </div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">{message}</div>
+  </div>
+);
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <label className="block space-y-1">

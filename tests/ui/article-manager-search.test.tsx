@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+﻿import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import { LabelEditor } from "@/ui/components/label-editor";
 
@@ -28,28 +28,22 @@ const seedArticles = () => {
   );
 };
 
-describe("LabelEditor article search flow", () => {
+describe("LabelEditor import api flow", () => {
   beforeEach(() => {
     window.localStorage.clear();
     seedArticles();
   });
 
-  it("finds an existing article in the article tab and loads it into edit mode", async () => {
+  it("shows the local article count in the Import/API tab while article search stays in print flow", async () => {
     render(<LabelEditor />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Artikel" }));
-
-    const searchInput = screen.getByPlaceholderText("Suche nach Name, SKU oder EAN");
-    fireEvent.change(searchInput, { target: { value: "jack" } });
-
-    const resultButton = await screen.findByRole("button", { name: /Elvent Testjacke/i });
-    fireEvent.click(resultButton);
+    fireEvent.click(screen.getByRole("button", { name: "Import/API" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Artikel bearbeiten")).toBeInTheDocument();
-      expect(screen.getByLabelText("Artikelname")).toHaveValue("Elvent Testjacke");
-      expect(screen.getByLabelText("SKU (optional)")).toHaveValue("ELV-JACK-7");
-      expect(screen.getByLabelText("EAN (optional)")).toHaveValue("4260706043787");
+      expect(screen.getByText(/Aktuell lokal verfügbare Artikel: 2/i)).toBeInTheDocument();
     });
+
+    expect(screen.queryByText("Artikel suchen und pflegen")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Suche nach Name, SKU oder EAN")).not.toBeInTheDocument();
   });
 });
