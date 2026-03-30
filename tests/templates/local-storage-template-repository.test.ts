@@ -36,7 +36,7 @@ describe("LocalStorageTemplateRepository", () => {
         name: "promo klein",
         layout: defaultLayout
       })
-    ).rejects.toThrow("Template name already exists.");
+    ).rejects.toThrow("Ein Layout mit diesem Namen existiert bereits.");
   });
 
   it("updates an existing template", async () => {

@@ -1,50 +1,34 @@
-export type TextAlign = "left" | "center" | "right";
+export type Orientation = "landscape" | "portrait";
 
 export type LabelLayoutProps = {
   widthMm: number;
   heightMm: number;
-  marginTopMm: number;
-  marginRightMm: number;
-  marginBottomMm: number;
-  marginLeftMm: number;
+  marginMm: number;
   articleNameFontSizePt: number;
   skuFontSizePt: number;
   barcodeHeightMm: number;
-  barcodeScale: number;
-  textAlign: TextAlign;
-  showSku: boolean;
-  showHumanReadableEan: boolean;
+  orientation: Orientation;
 };
 
 export class LabelLayout {
   private constructor(
     public readonly widthMm: number,
     public readonly heightMm: number,
-    public readonly marginTopMm: number,
-    public readonly marginRightMm: number,
-    public readonly marginBottomMm: number,
-    public readonly marginLeftMm: number,
+    public readonly marginMm: number,
     public readonly articleNameFontSizePt: number,
     public readonly skuFontSizePt: number,
     public readonly barcodeHeightMm: number,
-    public readonly barcodeScale: number,
-    public readonly textAlign: TextAlign,
-    public readonly showSku: boolean,
-    public readonly showHumanReadableEan: boolean
+    public readonly orientation: Orientation
   ) {}
 
   static create(props: LabelLayoutProps): LabelLayout {
     const numericFields = [
       props.widthMm,
       props.heightMm,
-      props.marginTopMm,
-      props.marginRightMm,
-      props.marginBottomMm,
-      props.marginLeftMm,
+      props.marginMm,
       props.articleNameFontSizePt,
       props.skuFontSizePt,
-      props.barcodeHeightMm,
-      props.barcodeScale
+      props.barcodeHeightMm
     ];
 
     if (numericFields.some((value) => !Number.isFinite(value) || value < 0)) {
@@ -54,17 +38,11 @@ export class LabelLayout {
     const layout = new LabelLayout(
       props.widthMm,
       props.heightMm,
-      props.marginTopMm,
-      props.marginRightMm,
-      props.marginBottomMm,
-      props.marginLeftMm,
+      props.marginMm,
       props.articleNameFontSizePt,
       props.skuFontSizePt,
       props.barcodeHeightMm,
-      props.barcodeScale,
-      props.textAlign,
-      props.showSku,
-      props.showHumanReadableEan
+      props.orientation
     );
 
     if (layout.printableWidthMm <= 0 || layout.printableHeightMm <= 0) {
@@ -74,12 +52,19 @@ export class LabelLayout {
     return layout;
   }
 
+  get resolvedWidthMm(): number {
+    return this.orientation === "portrait" ? this.heightMm : this.widthMm;
+  }
+
+  get resolvedHeightMm(): number {
+    return this.orientation === "portrait" ? this.widthMm : this.heightMm;
+  }
+
   get printableWidthMm(): number {
-    return this.widthMm - this.marginLeftMm - this.marginRightMm;
+    return this.resolvedWidthMm - this.marginMm * 2;
   }
 
   get printableHeightMm(): number {
-    return this.heightMm - this.marginTopMm - this.marginBottomMm;
+    return this.resolvedHeightMm - this.marginMm * 2;
   }
 }
-

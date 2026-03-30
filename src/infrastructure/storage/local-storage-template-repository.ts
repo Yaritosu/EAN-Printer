@@ -1,4 +1,5 @@
 import { type TemplateRepository } from "@/application/templates/template-repository";
+import { type LabelLayoutProps } from "@/domain/label/entities/label-layout";
 import { LabelTemplate, normalizeTemplateName } from "@/domain/templates/entities/label-template";
 
 const STORAGE_KEY = "ean-printer.templates.v1";
@@ -12,6 +13,16 @@ type StoredLabelTemplate = {
   createdAt: string;
   updatedAt: string;
 };
+
+const normalizeLayout = (layout: Record<string, unknown>): LabelLayoutProps => ({
+  widthMm: Number(layout.widthMm ?? 100),
+  heightMm: Number(layout.heightMm ?? 37.5),
+  marginMm: Number(layout.marginMm ?? layout.marginTopMm ?? layout.marginRightMm ?? layout.marginBottomMm ?? layout.marginLeftMm ?? 2),
+  articleNameFontSizePt: Number(layout.articleNameFontSizePt ?? 12),
+  skuFontSizePt: Number(layout.skuFontSizePt ?? 10),
+  barcodeHeightMm: Number(layout.barcodeHeightMm ?? 16),
+  orientation: layout.orientation === "portrait" ? "portrait" : "landscape"
+});
 
 export class LocalStorageTemplateRepository implements TemplateRepository {
   constructor(private readonly storage: StorageLike) {}
@@ -51,7 +62,7 @@ export class LocalStorageTemplateRepository implements TemplateRepository {
       LabelTemplate.create({
         id: entry.id,
         name: entry.name,
-        layout: entry.layout as never,
+        layout: normalizeLayout(entry.layout),
         createdAt: entry.createdAt,
         updatedAt: entry.updatedAt
       })

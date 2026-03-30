@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -32,18 +32,12 @@ const labelSchema = z.object({
   ean: z.string().regex(/^\d{13}$/, "EAN muss genau 13 Ziffern enthalten."),
   layout: z.object({
     widthMm: z.number().positive("Breite muss positiv sein."),
-    heightMm: z.number().positive("H\u00f6he muss positiv sein."),
-    marginTopMm: z.number().min(0),
-    marginRightMm: z.number().min(0),
-    marginBottomMm: z.number().min(0),
-    marginLeftMm: z.number().min(0),
-    articleNameFontSizePt: z.number().positive(),
-    skuFontSizePt: z.number().positive(),
-    barcodeHeightMm: z.number().positive(),
-    barcodeScale: z.number().positive(),
-    textAlign: z.enum(["left", "center", "right"]),
-    showSku: z.boolean(),
-    showHumanReadableEan: z.boolean()
+    heightMm: z.number().positive("Höhe muss positiv sein."),
+    marginMm: z.number().min(0, "Rand darf nicht negativ sein."),
+    articleNameFontSizePt: z.number().positive("Textgröße muss positiv sein."),
+    skuFontSizePt: z.number().positive("SKU-Größe muss positiv sein."),
+    barcodeHeightMm: z.number().positive("Barcode-Größe muss positiv sein."),
+    orientation: z.enum(["landscape", "portrait"])
   })
 });
 
@@ -76,14 +70,10 @@ type ImportBuffer = {
 const numericFieldNames: Array<keyof LabelFormValues["layout"]> = [
   "widthMm",
   "heightMm",
-  "marginTopMm",
-  "marginRightMm",
-  "marginBottomMm",
-  "marginLeftMm",
+  "marginMm",
   "articleNameFontSizePt",
   "skuFontSizePt",
-  "barcodeHeightMm",
-  "barcodeScale"
+  "barcodeHeightMm"
 ];
 
 export const LabelEditor = () => {
@@ -93,7 +83,6 @@ export const LabelEditor = () => {
   const [articleMessage, setArticleMessage] = useState("");
   const [importMessage, setImportMessage] = useState("");
   const [templateName, setTemplateName] = useState("");
-  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [activeLayoutId, setActiveLayoutId] = useState<string>(layoutPresets[0].id);
   const [templates, setTemplates] = useState<LabelTemplate[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
@@ -163,6 +152,11 @@ export const LabelEditor = () => {
     ];
   }, [templates]);
 
+  const activeLayoutOption = useMemo(
+    () => layoutOptions.find((option) => option.id === activeLayoutId) ?? layoutOptions[0],
+    [activeLayoutId, layoutOptions]
+  );
+
   const filteredArticles = useMemo(() => filterArticles(articles, articleSearch).slice(0, 8), [articles, articleSearch]);
   const articleSearchHasQuery = articleSearch.trim().length > 0;
   const showArticleSearchResults = isArticleSearchOpen && articleSearchHasQuery;
@@ -217,6 +211,15 @@ export const LabelEditor = () => {
     focusArticleSearch();
   };
 
+  const handleConfiguratorLayoutSelect = (layoutId: string) => {
+    setActiveLayoutId(layoutId);
+    const selectedOption = layoutOptions.find((option) => option.id === layoutId);
+    if (!selectedOption) return;
+    applyLayout(selectedOption.layout);
+    setTemplateName(selectedOption.source === "template" ? selectedOption.name : "");
+    setTemplateMessage("");
+  };
+
   const handleArticleSelectionForLabel = (article: Article) => {
     setSelectedArticleId(article.articleId);
     setArticleSearch(article.sku ? `${article.name} (${article.sku})` : article.name);
@@ -262,81 +265,39 @@ export const LabelEditor = () => {
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank", "noopener,noreferrer");
-    setPdfMessage("PDF wurde in einem neuen Fenster ge\u00f6ffnet.");
+    setPdfMessage("PDF wurde in einem neuen Fenster geöffnet.");
     focusArticleSearch();
   };
 
   const handleTemplateSave = async () => {
     if (!templateRepository) return;
     try {
-      const created = await saveTemplate(templateRepository, { name: templateName, layout: getValues("layout") });
-      await refreshTemplates();
-      setSelectedTemplateId(created.id);
-      setActiveLayoutId(created.id);
-      setTemplateName(created.name);
-      setTemplateMessage(`Template "${created.name}" wurde gespeichert und ist jetzt aktiv.`);
-    } catch (error) {
-      setTemplateMessage(error instanceof Error ? error.message : "Template konnte nicht gespeichert werden.");
-    }
-  };
-
-  const handleTemplateUpdate = async () => {
-    if (!templateRepository || !selectedTemplateId) return;
-    try {
-      const updated = await saveTemplate(templateRepository, {
-        id: selectedTemplateId,
+      const activeTemplate = activeLayoutOption?.source === "template" ? templates.find((template) => template.id === activeLayoutId) ?? null : null;
+      const shouldUpdateActiveTemplate = activeTemplate !== null && activeTemplate.name.trim() === templateName.trim();
+      const saved = await saveTemplate(templateRepository, {
+        id: shouldUpdateActiveTemplate ? activeTemplate.id : undefined,
         name: templateName,
         layout: getValues("layout")
       });
       await refreshTemplates();
-      setTemplateName(updated.name);
-      setActiveLayoutId(updated.id);
-      setTemplateMessage(`Template "${updated.name}" wurde aktualisiert.`);
+      setActiveLayoutId(saved.id);
+      setTemplateName(saved.name);
+      setTemplateMessage(`Layout "${saved.name}" wurde gespeichert.`);
     } catch (error) {
-      setTemplateMessage(error instanceof Error ? error.message : "Template konnte nicht aktualisiert werden.");
+      setTemplateMessage(error instanceof Error ? error.message : "Layout konnte nicht gespeichert werden.");
     }
-  };
-
-  const handleTemplateLoad = () => {
-    const selectedTemplate = templates.find((template) => template.id === selectedTemplateId);
-    if (!selectedTemplate) {
-      setTemplateMessage("Bitte zuerst ein Template ausw\u00e4hlen.");
-      return;
-    }
-    applyLayout(selectedTemplate.layout);
-    setActiveLayoutId(selectedTemplate.id);
-    setTemplateName(selectedTemplate.name);
-    setTemplateMessage(`Template "${selectedTemplate.name}" wurde in den Layout-Konfigurator geladen und ist aktiv.`);
   };
 
   const handleTemplateDelete = async () => {
-    if (!templateRepository || !selectedTemplateId) return;
-    const selectedTemplate = templates.find((template) => template.id === selectedTemplateId);
-    if (!selectedTemplate) return;
-    await deleteTemplate(templateRepository, selectedTemplate.id);
+    if (!templateRepository || activeLayoutOption?.source !== "template") return;
+    const activeTemplate = templates.find((template) => template.id === activeLayoutId);
+    if (!activeTemplate) return;
+    await deleteTemplate(templateRepository, activeTemplate.id);
     await refreshTemplates();
-    setSelectedTemplateId("");
-    setTemplateName("");
-    if (activeLayoutId === selectedTemplate.id) {
-      setActiveLayoutId(layoutPresets[0].id);
-      applyLayout(layoutPresets[0].layout);
-    }
-    setTemplateMessage(`Template "${selectedTemplate.name}" wurde gel\u00f6scht.`);
-  };
-
-  const handleTemplateReset = () => {
-    applyLayout(defaultLayout);
     setActiveLayoutId(layoutPresets[0].id);
-    setSelectedTemplateId("");
+    applyLayout(layoutPresets[0].layout);
     setTemplateName("");
-    setTemplateMessage("Standardlayout wurde geladen.");
-  };
-
-  const handleTemplateSelect = (id: string) => {
-    setSelectedTemplateId(id);
-    const selectedTemplate = templates.find((template) => template.id === id);
-    setTemplateName(selectedTemplate?.name ?? "");
-    setTemplateMessage("");
+    setTemplateMessage(`Layout "${activeTemplate.name}" wurde gelöscht.`);
   };
 
   const handleDraftChange = (field: "name" | "sku" | "ean", value: string) => {
@@ -370,7 +331,7 @@ export const LabelEditor = () => {
       await refreshArticles();
       setEditingArticleId("");
       setArticleDraft({ name: "", sku: "", ean: "" });
-      setArticleMessage(`Artikel "${saved.name}" wurde gespeichert. Das Formular ist bereit f\u00fcr den n\u00e4chsten Artikel.`);
+      setArticleMessage(`Artikel "${saved.name}" wurde gespeichert. Das Formular ist bereit für den nächsten Artikel.`);
     } catch (error) {
       setArticleMessage(error instanceof Error ? error.message : "Artikel konnte nicht gespeichert werden.");
     }
@@ -387,7 +348,7 @@ export const LabelEditor = () => {
     }
     setEditingArticleId("");
     setArticleDraft({ name: "", sku: "", ean: "" });
-    setArticleMessage(selectedArticleForEdit ? `Artikel "${selectedArticleForEdit.name}" wurde gel\u00f6scht.` : "Artikel wurde gel\u00f6scht.");
+    setArticleMessage(selectedArticleForEdit ? `Artikel "${selectedArticleForEdit.name}" wurde gelöscht.` : "Artikel wurde gelöscht.");
   };
 
   const handleArticleReset = () => {
@@ -441,7 +402,8 @@ export const LabelEditor = () => {
     setImportBuffer(null);
   };
 
-  const activeLayoutLabel = layoutOptions.find((option) => option.id === activeLayoutId)?.name ?? layoutPresets[0].name;
+  const activeLayoutLabel = activeLayoutOption?.name ?? layoutPresets[0].name;
+  const canDeleteLayout = activeLayoutOption?.source === "template";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -528,8 +490,6 @@ export const LabelEditor = () => {
                     </div>
                   ) : null}
                 </div>
-
-
               </div>
             </div>
 
@@ -537,7 +497,7 @@ export const LabelEditor = () => {
               <div className="rounded-[24px] border border-teal-200 bg-teal-50/70 px-4 py-3 text-sm text-slate-700">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-slate-900">{"Ausgewählter Artikel"}</p>
+                    <p className="font-semibold text-slate-900">Ausgewählter Artikel</p>
                     <p className="mt-1">{selectedArticle.name}</p>
                     <p className="mt-1 text-slate-500">
                       {selectedArticle.sku ? `SKU ${selectedArticle.sku}` : "ohne SKU"}
@@ -549,7 +509,7 @@ export const LabelEditor = () => {
                     onClick={handleSelectedArticleClear}
                     type="button"
                   >
-                    {"Auswahl lösen"}
+                    Auswahl lösen
                   </button>
                 </div>
               </div>
@@ -599,18 +559,16 @@ export const LabelEditor = () => {
         {activeTab === "layout" ? (
           <>
             <TemplateManager
+              canDelete={canDeleteLayout}
               disabled={!templateRepository}
+              layoutOptions={layoutOptions.map((option) => ({ id: option.id, name: option.name, source: option.source }))}
               message={templateMessage}
               onDelete={handleTemplateDelete}
-              onLoad={handleTemplateLoad}
-              onReset={handleTemplateReset}
+              onLayoutSelect={handleConfiguratorLayoutSelect}
               onSave={handleTemplateSave}
               onTemplateNameChange={setTemplateName}
-              onTemplateSelect={handleTemplateSelect}
-              onUpdate={handleTemplateUpdate}
-              selectedTemplateId={selectedTemplateId}
+              selectedLayoutId={activeLayoutId}
               templateName={templateName}
-              templates={templates}
             />
 
             <div className="space-y-4">
@@ -623,24 +581,12 @@ export const LabelEditor = () => {
                 ))}
               </div>
 
-              <Field label="Ausrichtung">
-                <SelectControl {...register("layout.textAlign")}>
-                  <option value="left">Links</option>
-                  <option value="center">Zentriert</option>
-                  <option value="right">Rechts</option>
+              <Field label="Layout-Ausrichtung">
+                <SelectControl {...register("layout.orientation") as { value?: string; onChange?: React.ChangeEventHandler<HTMLSelectElement>; onBlur?: React.FocusEventHandler<HTMLSelectElement>; name: string; ref: React.Ref<HTMLSelectElement> }}>
+                  <option value="landscape">Querformat</option>
+                  <option value="portrait">Hochformat</option>
                 </SelectControl>
               </Field>
-
-              <div className="flex flex-wrap gap-4 text-sm text-slate-700">
-                <label className="inline-flex items-center gap-2">
-                  <input {...register("layout.showSku")} type="checkbox" />
-                  SKU anzeigen
-                </label>
-                <label className="inline-flex items-center gap-2">
-                  <input {...register("layout.showHumanReadableEan")} type="checkbox" />
-                  EAN-Klarschrift anzeigen
-                </label>
-              </div>
             </div>
           </>
         ) : null}
@@ -656,7 +602,7 @@ export const LabelEditor = () => {
               <span>{activeLayoutLabel}</span>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
-              {"Wähle einen Artikel aus oder erfasse EAN, Artikelname und SKU."}
+              Wähle einen Artikel aus oder erfasse EAN, Artikelname und SKU.
             </div>
           </div>
         )}
@@ -715,18 +661,10 @@ const inputClassName =
 
 const layoutLabels: Record<keyof LabelFormValues["layout"], string> = {
   widthMm: "Breite mm",
-  heightMm: "H\u00f6he mm",
-  marginTopMm: "Rand oben mm",
-  marginRightMm: "Rand rechts mm",
-  marginBottomMm: "Rand unten mm",
-  marginLeftMm: "Rand links mm",
-  articleNameFontSizePt: "Name pt",
-  skuFontSizePt: "SKU pt",
-  barcodeHeightMm: "Barcodeh\u00f6he mm",
-  barcodeScale: "Barcode-Skalierung",
-  textAlign: "Ausrichtung",
-  showSku: "SKU anzeigen",
-  showHumanReadableEan: "EAN-Klarschrift"
+  heightMm: "Höhe mm",
+  marginMm: "Rand mm",
+  articleNameFontSizePt: "Textgröße",
+  skuFontSizePt: "SKU-Größe",
+  barcodeHeightMm: "Barcode-Größe",
+  orientation: "Layout-Ausrichtung"
 };
-
-

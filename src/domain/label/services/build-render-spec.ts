@@ -32,42 +32,40 @@ export const buildRenderSpec = (document: LabelDocument): RenderSpec => {
       kind: "articleName",
       value: content.articleName,
       fontSizePt: layout.articleNameFontSizePt,
-      align: layout.textAlign
+      align: "center"
     }
   ];
 
-  if (layout.showSku && content.sku) {
+  if (content.sku) {
     textBlocks.push({
       kind: "sku",
       value: content.sku,
       fontSizePt: layout.skuFontSizePt,
-      align: layout.textAlign
+      align: "center"
     });
   }
 
-  if (layout.showHumanReadableEan) {
-    textBlocks.push({
-      kind: "humanReadableEan",
-      value: content.ean.value,
-      fontSizePt: layout.skuFontSizePt,
-      align: layout.textAlign
-    });
-  }
+  textBlocks.push({
+    kind: "humanReadableEan",
+    value: content.ean.value,
+    fontSizePt: layout.skuFontSizePt,
+    align: "center"
+  });
 
   return {
-    widthMm: layout.widthMm,
-    heightMm: layout.heightMm,
+    widthMm: layout.resolvedWidthMm,
+    heightMm: layout.resolvedHeightMm,
     marginsMm: {
-      top: layout.marginTopMm,
-      right: layout.marginRightMm,
-      bottom: layout.marginBottomMm,
-      left: layout.marginLeftMm
+      top: layout.marginMm,
+      right: layout.marginMm,
+      bottom: layout.marginMm,
+      left: layout.marginMm
     },
     barcode: {
       format: content.barcode.format,
       value: content.barcode.value,
       heightMm: layout.barcodeHeightMm,
-      scale: layout.barcodeScale
+      scale: 2
     },
     textBlocks
   };

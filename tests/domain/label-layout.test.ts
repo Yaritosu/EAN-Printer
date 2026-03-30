@@ -5,21 +5,16 @@ describe("LabelLayout", () => {
     const layout = LabelLayout.create({
       widthMm: 100,
       heightMm: 37.5,
-      marginTopMm: 2,
-      marginRightMm: 2,
-      marginBottomMm: 2,
-      marginLeftMm: 2,
+      marginMm: 2,
       articleNameFontSizePt: 12,
       skuFontSizePt: 10,
       barcodeHeightMm: 16,
-      barcodeScale: 2.2,
-      textAlign: "left",
-      showSku: true,
-      showHumanReadableEan: true
+      orientation: "landscape"
     });
 
     expect(layout.printableWidthMm).toBe(96);
     expect(layout.printableHeightMm).toBe(33.5);
+    expect(layout.orientation).toBe("landscape");
   });
 
   it("rejects layouts without printable width", () => {
@@ -27,17 +22,11 @@ describe("LabelLayout", () => {
       LabelLayout.create({
         widthMm: 10,
         heightMm: 20,
-        marginTopMm: 2,
-        marginRightMm: 5,
-        marginBottomMm: 2,
-        marginLeftMm: 5,
+        marginMm: 5,
         articleNameFontSizePt: 12,
         skuFontSizePt: 10,
         barcodeHeightMm: 8,
-        barcodeScale: 2,
-        textAlign: "left",
-        showSku: true,
-        showHumanReadableEan: true
+        orientation: "landscape"
       })
     ).toThrow("Das Layout muss eine positive druckbare Fläche übrig lassen.");
   });

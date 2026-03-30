@@ -22,7 +22,7 @@ export const saveTemplate = async (
 ): Promise<LabelTemplate> => {
   const existingWithName = await repository.findByNormalizedName(normalizeTemplateName(input.name));
   if (existingWithName && existingWithName.id !== input.id) {
-    throw new Error("Template name already exists.");
+    throw new Error("Ein Layout mit diesem Namen existiert bereits.");
   }
 
   const existingById = input.id ? await repository.findById(input.id) : null;

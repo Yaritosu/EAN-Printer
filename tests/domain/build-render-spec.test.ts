@@ -4,7 +4,7 @@ import { LabelLayout } from "@/domain/label/entities/label-layout";
 import { buildRenderSpec } from "@/domain/label/services/build-render-spec";
 
 describe("buildRenderSpec", () => {
-  it("builds a render spec with CODE128 barcode and text blocks", () => {
+  it("builds a render spec with CODE128 barcode and fixed centered text blocks", () => {
     const document = LabelDocument.create({
       content: LabelContent.create({
         articleName: "Premium Baumwoll-Shirt",
@@ -14,17 +14,11 @@ describe("buildRenderSpec", () => {
       layout: LabelLayout.create({
         widthMm: 100,
         heightMm: 37.5,
-        marginTopMm: 2,
-        marginRightMm: 2,
-        marginBottomMm: 2,
-        marginLeftMm: 2,
+        marginMm: 2,
         articleNameFontSizePt: 12,
         skuFontSizePt: 10,
         barcodeHeightMm: 16,
-        barcodeScale: 2.2,
-        textAlign: "center",
-        showSku: true,
-        showHumanReadableEan: true
+        orientation: "landscape"
       })
     });
 
@@ -32,6 +26,7 @@ describe("buildRenderSpec", () => {
 
     expect(spec.widthMm).toBe(100);
     expect(spec.heightMm).toBe(37.5);
+    expect(spec.marginsMm).toEqual({ top: 2, right: 2, bottom: 2, left: 2 });
     expect(spec.barcode.format).toBe("CODE128");
     expect(spec.barcode.value).toBe("4006381333931");
     expect(spec.textBlocks.map((block) => block.value)).toEqual([
@@ -39,33 +34,30 @@ describe("buildRenderSpec", () => {
       "SKU-1234",
       "4006381333931"
     ]);
+    expect(spec.textBlocks.every((block) => block.align === "center")).toBe(true);
   });
 
-  it("omits the SKU block when disabled in the layout", () => {
+  it("swaps width and height for portrait orientation", () => {
     const document = LabelDocument.create({
       content: LabelContent.create({
-        articleName: "Artikel ohne SKU",
+        articleName: "A6 Etikett",
         ean: "4006381333931"
       }),
       layout: LabelLayout.create({
-        widthMm: 58,
-        heightMm: 40,
-        marginTopMm: 2,
-        marginRightMm: 2,
-        marginBottomMm: 2,
-        marginLeftMm: 2,
-        articleNameFontSizePt: 11,
-        skuFontSizePt: 9,
-        barcodeHeightMm: 16,
-        barcodeScale: 2,
-        textAlign: "left",
-        showSku: false,
-        showHumanReadableEan: true
+        widthMm: 105,
+        heightMm: 74,
+        marginMm: 4,
+        articleNameFontSizePt: 12,
+        skuFontSizePt: 10,
+        barcodeHeightMm: 20,
+        orientation: "portrait"
       })
     });
 
     const spec = buildRenderSpec(document);
 
+    expect(spec.widthMm).toBe(74);
+    expect(spec.heightMm).toBe(105);
     expect(spec.textBlocks.map((block) => block.kind)).toEqual(["articleName", "humanReadableEan"]);
   });
 });

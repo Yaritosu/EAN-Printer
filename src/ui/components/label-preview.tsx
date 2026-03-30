@@ -33,17 +33,6 @@ export const LabelPreview = ({ spec }: LabelPreviewProps) => {
             data-testid="preview-label"
             style={{ width: labelWidth, height: labelHeight }}
           >
-            <div
-              className="absolute border border-dashed border-slate-300"
-              data-testid="preview-outline"
-              style={{
-                left: metrics.previewOutlineBox.x * scale,
-                top: metrics.previewOutlineBox.y * scale,
-                width: metrics.previewOutlineBox.width * scale,
-                height: metrics.previewOutlineBox.height * scale
-              }}
-            />
-
             {metrics.textRows.map((row) => (
               <div
                 key={`${row.kind}-${row.value}`}

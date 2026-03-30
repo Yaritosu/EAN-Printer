@@ -9,21 +9,16 @@ describe("buildPreview", () => {
       layout: {
         widthMm: 100,
         heightMm: 37.5,
-        marginTopMm: 2,
-        marginRightMm: 2,
-        marginBottomMm: 2,
-        marginLeftMm: 2,
+        marginMm: 2,
         articleNameFontSizePt: 12,
         skuFontSizePt: 10,
         barcodeHeightMm: 16,
-        barcodeScale: 2,
-        textAlign: "center",
-        showSku: true,
-        showHumanReadableEan: true
+        orientation: "landscape"
       }
     });
 
     expect(preview.barcode.format).toBe("CODE128");
     expect(preview.textBlocks).toHaveLength(3);
+    expect(preview.widthMm).toBe(100);
   });
 });

@@ -16,34 +16,25 @@ const spec = buildRenderSpec(
     layout: LabelLayout.create({
       widthMm: 100,
       heightMm: 37.5,
-      marginTopMm: 2,
-      marginRightMm: 2,
-      marginBottomMm: 2,
-      marginLeftMm: 2,
+      marginMm: 2,
       articleNameFontSizePt: 12,
       skuFontSizePt: 10,
       barcodeHeightMm: 16,
-      barcodeScale: 2,
-      textAlign: "center",
-      showSku: true,
-      showHumanReadableEan: true
+      orientation: "landscape"
     })
   })
 );
 
 describe("LabelPreview polish", () => {
-  it("renders the stage centered without gray fill and uses a square preview label", () => {
+  it("renders the stage centered without gray fill, without outline and with a square preview label", () => {
     render(<LabelPreview spec={spec} />);
 
     const stage = screen.getByTestId("preview-stage");
     const label = screen.getByTestId("preview-label");
-    const outline = screen.getByTestId("preview-outline");
 
     expect(stage.className).toContain("justify-center");
     expect(stage.className).not.toContain("bg-slate-100");
     expect(label.className).not.toContain("rounded");
-
-    const outlineTop = Number.parseFloat((outline as HTMLElement).style.top);
-    expect(outlineTop).toBeGreaterThan(40);
+    expect(screen.queryByTestId("preview-outline")).not.toBeInTheDocument();
   });
 });
